@@ -18,14 +18,17 @@ export default {
       return this.$store.state.files[this.index];
     },
     name() {
-      if (this.file.season === 'Credits') {
-        return `${this.file.show} - ${this.file.episode}`;
+      if (!this.file.show || !this.file.season || !this.file.episode) return this.file.renamed;
+      const season = this.file.season || '';
+      const episode = this.file.episode || '';
+      if (season === 'Credits') {
+        return `${this.file.show} - ${episode}`;
       }
-      if (this.file.episode.indexOf('-') > -1) {
-        const parts = this.file.episode.split('-');
-        return `${this.file.show} - S${this.file.season}E${parts[0]}E${parts[1]}`;
+      if (episode.indexOf('-') > -1) {
+        const parts = episode.split('-');
+        return `${this.file.show} - S${season}E${parts[0]}E${parts[1]}`;
       }
-      return `${this.file.show} - S${this.file.season}E${this.file.episode}`;
+      return `${this.file.show} - S${season}E${episode}`;
     }
 
   },

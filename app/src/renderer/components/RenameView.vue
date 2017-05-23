@@ -65,7 +65,8 @@
   import SystemFiles from './RenameView/SystemFiles.vue';
   import RenamedFiles from './RenameView/RenamedFiles.vue';
   import reader from '../services/reader';
-  import parser from '../services/parser';
+  import AnimeParser from '../parser/AnimeParser';
+  import Anime from '../models/Anime';
 
   export default {
     components: {
@@ -129,8 +130,12 @@
       parseAnime() {
         this.isMatching = true;
         this.animeButtonClasses = 'is-loading is-empty';
-        const files = parser.parseAnime(this.files);
-        this.$store.commit('UPDATE_FILES', files);
+        const newFiles = [];
+        this.files.forEach((file) => {
+          const anime = new Anime(...file.getProperties(), '', '', '');
+          newFiles.push(new AnimeParser(anime).parse());
+        })
+        this.$store.commit('UPDATE_FILES', newFiles);
         this.isMatching = false;
         this.animeButtonClasses = '';
       },

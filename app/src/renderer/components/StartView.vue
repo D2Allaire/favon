@@ -19,7 +19,8 @@
 </template>
 
 <script>
-  import reader from '../services/reader';
+  import FileReader from '../reader/FileReader';
+  import Anime from '../models/Anime';
 
   export default {
     name: 'start-page',
@@ -56,7 +57,8 @@
        */
       readFiles() {
         this.$store.commit('SET_LOADING', true);
-        reader.readFiles(this.path)
+        const reader = new FileReader(this.path);
+        reader.readDirectory()
           .then((files) => {
             this.$store.commit('UPDATE_FILES', files);
             this.$store.commit('SET_LOADING', false);
