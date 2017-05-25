@@ -9,6 +9,10 @@ export default class MediaFile {
     this.renamed = name;
   }
 
+  static get FILEPATH() {
+    return /^((?:[/\\]?[^/\\]+[/\\])*)(?:[^/\\]+)$/i;
+  }
+
   static get KEY_BEFORE() {
     return /(?=^|\b|[[({\s_.-])/;
   }

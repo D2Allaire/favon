@@ -23,7 +23,7 @@
   #app { height: 100%; }
 
   .container {
-    width: 90;
+    width: 95%;
     max-width: 1020px;
   }
 

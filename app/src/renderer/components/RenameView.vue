@@ -13,6 +13,13 @@
     </header>
     <main>
       <div class="container">
+        <div class="notification" :class="notificationClasses">
+          <div class="alert" :class="alertClasses">
+            <div class="status">{{ alertStatus }}</div>
+            <div class="close">
+              <button class="button is-outline is-light is-narrow" @click="closeNotification">Close</button></div>
+          </div>
+        </div>
         <div class="panels">
           <system-files></system-files>
           <img src="./RenameView/assets/chevron.png">
@@ -50,7 +57,9 @@
             </button>
             <button
             class="button is-success has-depth"
-            :disabled="isMatching">
+            :disabled="isMatching"
+            :class="saveButtonClasses"
+            @click="renameFiles">
               Save
             </button>
           </div>
@@ -69,6 +78,7 @@
   import Anime from '../models/Anime';
   import SeriesParser from '../parser/SeriesParser';
   import Series from '../models/Series';
+  import FileRenamer from '../renamer/FileRenamer';
 
   export default {
     components: {
@@ -82,6 +92,10 @@
         animeButtonClasses: '',
         movieButtonClasses: '',
         tvButtonClasses: '',
+        saveButtonClasses: '',
+        alertClasses: 'is-success',
+        alertStatus: 'All files have been renamed.',
+        notificationClasses: '',
         error: '',
       }
     },
@@ -157,6 +171,20 @@
         this.$store.commit('UPDATE_FILES', newFiles);
         this.isMatching = false;
         this.tvButtonClasses = '';
+      },
+      renameFiles() {
+        this.saveButtonClasses = 'is-loading is-empty';
+        this.files.forEach((file) => {
+          new FileRenamer(file).rename();
+        });
+        this.saveButtonClasses = '';
+        this.notificationClasses = 'is-visible';
+        this.alertClasses = 'is-success';
+        this.alertStatus = 'All files have been renamed.';
+      },
+
+      closeNotification() {
+        this.notificationClasses = '';
       }
     },
   };
@@ -172,6 +200,7 @@
     background-color: #1d2d51;
     display: flex;
     align-items: center;
+    z-index: 999;
   }
 
   .header__left {
@@ -224,6 +253,52 @@
     }
     .button.is-success {
       margin-left: 40px;
+    }
+  }
+
+  .notification {
+    position: absolute;
+    top: 70px;
+    opacity: 0;
+    transition: opacity .5s, visibility .5s;
+    visibility: hidden;
+    width: calc(95% - 4rem);
+    max-width: calc(1020px - 4rem);
+
+    .alert {
+      display: flex;
+      align-items: center;
+      position: relative;
+      transition: transform 1s;
+      transform: translateY(0px);
+
+      &.is-success {
+        background-color: #6fed6f;
+      }
+    }
+
+    &.is-visible {
+      opacity: 1;
+      visibility: visible;
+
+      .alert {
+        transform: translateY(10px);
+        z-index: 10;
+      }          
+    }
+
+    .close {
+      margin-left: auto;
+
+      .button.is-light {
+      border-color: #4fb54f;
+      color: #4fb54f;
+
+      &:hover {
+        border-color: #3f933f;
+        color: #3f933f;
+      }
+    }
     }
   }
 </style>
