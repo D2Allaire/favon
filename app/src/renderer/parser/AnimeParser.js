@@ -1,32 +1,114 @@
+import SeriesParser from './SeriesParser';
 
-export default class AnimeParser {
+export default class AnimeParser extends SeriesParser {
 
-  constructor(anime) {
-    this.anime = anime;
+  /**
+   * Matches anime credits. Examples:
+   * Railgun S - NCOP
+   * Hakkenden OP2
+   */
+  static get CREDITS() {
+    return /((?:OP|ED|NCOP|NCED)(?:\d)?)(?:[^\\/]*$)/;
   }
 
-  static get EXPLICIT() {
-    return /^((?:(?!\sS\d{1,3}).)*)(?:\b|[\s-]*)+S(\d{1,3})(?:\b|[\s\-x])*(?:E(\d{1,3}(?:-\d{1,3})?(?:\.\d)?)(?:\s?v\d)?)(?:[^\\/]*$)/i;
+  /**
+   * Matches specials in the format OVA - 01. Examples:
+   * [SHiN-gx] Fight Ippatsu! Juuden-chanls - Special 1 [720x480 AR h.264 FLAC][v2][FF09021F]
+   * [MaverickSubs] Third Aerial Girls Squad - OVA 2 (Shirobako Vol.7 OVA) [1080p]
+   */
+  static get SPECIAL_BEFORE() {
+    return /(Special|SP|OVA|OAV|Picture Drama|Movie)(?:\b|[\s-]+)(\d{1,3})(?:\s?v\d)?/;
   }
+
+  /**
+   * Matches specials in the format 01 - OVA. Example:
+   * [MaverickSubs] Third Aerial Girls Squad - 02 - OVA (Shirobako Vol.7 OVA) [1080p]
+   */
+  static get SPECIAL_AFTER() {
+    return /(\d{1,3})(?:\s?v\d)?(?:\b|[\s-]+)(?:Special|SP|OVA|OAV|Picture Drama|Movie)/;
+  }
+
 
   cleanFileName() {
-    return this.anime.removeBrackets().removeDelimiters().removeKeywords();
-  }
-
-  normalizeAnime() {
-    return this.anime.normalizeShow().normalizeSeason().normalizeEpisode();
+    return this.series.removeBrackets().removeDelimiters().removeKeywords();
   }
 
   parse() {
     this.cleanFileName();
-    const result = AnimeParser.EXPLICIT.exec(this.anime.renamed);
+    // Explicit Pattern
+    let result = new RegExp(
+      SeriesParser.BASE.source + SeriesParser.EXPLICIT.source, 'i'
+    ).exec(this.series.renamed);
     if (result) {
-      this.anime.show = result[1];
-      this.anime.season = result[2];
-      this.anime.episode = result[3];
-      this.normalizeAnime();
+      this.series.show = result[1];
+      this.series.season = result[2];
+      this.series.episode = result[3];
+      this.normalizeSeries();
+      console.log(`Matched ${this.series.show} as EXPLICIT`);
+      return this.series;
     }
-    return this.anime;
+    // Credits Pattern
+    result = new RegExp(
+      SeriesParser.BASE.source + AnimeParser.CREDITS.source
+    ).exec(this.series.renamed);
+    if (result) {
+      this.series.show = result[1];
+      this.series.season = 'Credits';
+      this.series.episode = result[2];
+      this.normalizeSeries();
+      console.log(`Matched ${this.series.show} as CREDITS`);
+      return this.series;
+    }
+    // Specials Before Pattern
+    result = new RegExp(
+      SeriesParser.BASE.source + AnimeParser.SPECIAL_BEFORE.source, 'i'
+    ).exec(this.series.renamed);
+    if (result) {
+      this.series.show = result[1];
+      this.series.season = '00';
+      this.series.episode = result[3];
+      this.normalizeSeries();
+      console.log(`Matched ${this.series.show} as SPECIAL_BEFORE`);
+      return this.series;
+    }
+    // Specials After Pattern
+    result = new RegExp(
+      SeriesParser.BASE.source + AnimeParser.SPECIAL_AFTER.source, 'i'
+    ).exec(this.series.renamed);
+    if (result) {
+      this.series.show = result[1];
+      this.series.season = '00';
+      this.series.episode = result[2];
+      this.normalizeSeries();
+      console.log(`Matched ${this.series.show} as SPECIAL_AFTER`);
+      return this.series;
+    }
+    // Match explicit directory season marker
+    result = new RegExp(
+      SeriesParser.DIRECTORY.source, 'i'
+    ).exec(this.series.getCleanPath());
+    if (result) {
+      this.series.show = result[1];
+      this.series.season = result[2];
+      this.series.episode = result[3];
+      this.normalizeSeries();
+      console.log(`Matched ${this.series.show} as DIRECTORY`);
+      return this.series;
+    }
+    // Default Parsing Pattern
+    result = new RegExp(
+      SeriesParser.BASE.source + SeriesParser.DEFAULT.source, 'i'
+    ).exec(this.series.renamed);
+    if (result) {
+      this.series.show = result[1];
+      this.series.season = result[2] || '01';
+      this.series.episode = result[3];
+      this.normalizeSeries();
+      console.log(`Matched ${this.series.show} as DEFAULT`);
+      return this.series;
+    }
+
+    return this.series;
   }
 
 }

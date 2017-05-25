@@ -47,6 +47,18 @@ export default class MediaFile {
     });
   }
 
+  getCleanPath() {
+    let path = this.path.replace(/(?:\[[^\]]+\]|\{[^}]+\})/g, '');
+    path = path.replace(/[_.]/g, ' ').trim();
+    // Remove general keywords
+    keywords.general.forEach((keyword) => {
+      path = path.replace(
+        new RegExp(MediaFile.KEY_BEFORE.source + keyword + MediaFile.KEY_AFTER.source, 'ig'),
+        '');
+    });
+    return path;
+  }
+
   getProperties() {
     return [
       this.path,

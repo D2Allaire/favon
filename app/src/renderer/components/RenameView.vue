@@ -64,9 +64,11 @@
 <script>
   import SystemFiles from './RenameView/SystemFiles.vue';
   import RenamedFiles from './RenameView/RenamedFiles.vue';
-  import reader from '../services/reader';
+  import FileReader from '../reader/FileReader';
   import AnimeParser from '../parser/AnimeParser';
   import Anime from '../models/Anime';
+  import SeriesParser from '../parser/SeriesParser';
+  import Series from '../models/Series';
 
   export default {
     components: {
@@ -112,7 +114,8 @@
       },
       readFiles() {
         this.$store.commit('SET_LOADING', true);
-        reader.readFiles(this.path)
+        const reader = new FileReader(this.path);
+        reader.readDirectory()
           .then((files) => {
             this.$store.commit('EMPTY_FILES');
             this.$store.commit('UPDATE_FILES', files);
@@ -132,9 +135,9 @@
         this.animeButtonClasses = 'is-loading is-empty';
         const newFiles = [];
         this.files.forEach((file) => {
-          const anime = new Anime(...file.getProperties(), '', '', '');
+          const anime = new Anime(...file.getProperties());
           newFiles.push(new AnimeParser(anime).parse());
-        })
+        });
         this.$store.commit('UPDATE_FILES', newFiles);
         this.isMatching = false;
         this.animeButtonClasses = '';
@@ -146,6 +149,14 @@
       parseTV() {
         this.isMatching = true;
         this.tvButtonClasses = 'is-loading is-empty';
+        const newFiles = [];
+        this.files.forEach((file) => {
+          const series = new Series(...file.getProperties());
+          newFiles.push(new SeriesParser(series).parse());
+        });
+        this.$store.commit('UPDATE_FILES', newFiles);
+        this.isMatching = false;
+        this.tvButtonClasses = '';
       }
     },
   };
