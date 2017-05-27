@@ -78,7 +78,11 @@
   import Anime from '../models/Anime';
   import SeriesParser from '../parser/SeriesParser';
   import Series from '../models/Series';
+  import Movie from '../models/Movie';
+  import MovieParser from '../parser/MovieParser';
   import FileRenamer from '../renamer/FileRenamer';
+  import TMDBClient from '../matcher/TMDBClient';
+  import MovieMatcher from '../matcher/MovieMatcher';
 
   export default {
     components: {
@@ -159,6 +163,18 @@
       parseMovie() {
         this.isMatching = true;
         this.movieButtonClasses = 'is-loading is-empty';
+        const newFiles = [];
+        const matcher = new MovieMatcher(new TMDBClient('a18acf0f4863e03582f540974a2eb294'));
+        this.files.forEach((file) => {
+          const movie = new Movie(...file.getProperties());
+          const parsedMovie = new MovieParser(movie).parse();
+          newFiles.push(parsedMovie);
+        });
+        matcher.matchFiles(newFiles, matchedFiles => {
+          this.$store.commit('UPDATE_FILES', matchedFiles);
+        });
+        this.isMatching = false;
+        this.movieButtonClasses = '';
       },
       parseTV() {
         this.isMatching = true;
@@ -174,8 +190,9 @@
       },
       renameFiles() {
         this.saveButtonClasses = 'is-loading is-empty';
+        const renamer = new FileRenamer();
         this.files.forEach((file) => {
-          new FileRenamer(file).rename();
+          renamer.rename(file);
         });
         this.saveButtonClasses = '';
         this.notificationClasses = 'is-visible';

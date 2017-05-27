@@ -18,7 +18,7 @@ export default class MediaFile {
   }
 
   static get KEY_AFTER() {
-    return /(?=[\s_.\-\])}]|$)/;
+    return /(?:-[^\s_.])?(?=[\s_.\-\])}]|$)/;
   }
 
   /**

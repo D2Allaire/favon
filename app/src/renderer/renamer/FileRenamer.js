@@ -2,29 +2,28 @@ import fs from 'fs';
 import MediaFile from '../models/MediaFile';
 import Anime from '../models/Anime';
 import Series from '../models/Series';
+import Movie from '../models/Movie';
 
 
 export default class FileRenamer {
 
-  constructor(file) {
-    this.file = file;
-  }
-
-  rename() {
-    const result = MediaFile.FILEPATH.exec(this.file.path);
+  rename(file) {
+    const result = MediaFile.FILEPATH.exec(file.path);
     if (result) {
       const path = result[1];
-      let newName = this.file.name;
-      if (this.file instanceof Anime) {
-        if (this.file.season > 1) {
-          newName = `${this.file.show} S${this.file.season} - ${this.file.episode}.${this.file.format}`;
+      let newName = file.name;
+      if (file instanceof Anime) {
+        if (file.season > 1) {
+          newName = `${file.show} S${file.season} - ${file.episode}.${file.format}`;
         } else {
-          newName = `${this.file.show} - ${this.file.episode}.${this.file.format}`;
-        }        
-      } else if (this.file instanceof Series) {
-        newName = `${this.file.show} S${this.file.season}E${this.file.episode}.${this.file.format}`;
+          newName = `${file.show} - ${file.episode}.${file.format}`;
+        }
+      } else if (file instanceof Series) {
+        newName = `${file.show} S${file.season}E${file.episode}.${file.format}`;
+      } else if (file instanceof Movie) {
+        newName = `${file.title} (${file.year})`;
       }
-      fs.rename(this.file.path, `${path}${newName}`, (err) => {
+      fs.rename(file.path, `${path}${newName}`, (err) => {
         if (err) console.log(`ERROR: ${err}`);
       });
     }
