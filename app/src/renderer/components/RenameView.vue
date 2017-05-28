@@ -171,7 +171,16 @@
           newFiles.push(parsedMovie);
         });
         matcher.matchFiles(newFiles, matchedFiles => {
-          this.$store.commit('UPDATE_FILES', matchedFiles);
+          const matchedMovies = [];
+          const ambiguousMovies = []; 
+          for (let i = 0; i < matchedFiles.length; i++) {
+            if (!(matchedFiles[i] instanceof Movie)) {
+              ambiguousMovies.push(matchedFiles[i]);
+            } else {
+              matchedMovies.push(matchedFiles[i]);
+            }
+          }
+          this.$store.commit('UPDATE_FILES', matchedMovies);
         });
         this.isMatching = false;
         this.movieButtonClasses = '';

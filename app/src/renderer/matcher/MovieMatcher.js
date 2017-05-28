@@ -1,24 +1,28 @@
 import FileMatcher from './FileMatcher';
 import { syncLoop } from './utilities';
 import stringSimilarity from 'string-similarity';
+import Movie from '../models/Movie';
 
 function comparator(a, b) {
   // B is MORE similar than A
-  if (a.similarity < b.similarity) {
-    if ((b.similarity - a.similarity) > 0.5) return 1;
-    if ((a.popularity - b.popularity) > 2) return -1;
-    return 1;
-  }
-  // A is MORE similar than B
-  if (a.similarity > b.similarity) {
-    if ((a.similarity - b.similarity) > 0.5) return -1;
-    if ((b.popularity - a.popularity) > 2) return 1;
-    return -1;
-  }
-  // They are both equally similar, sort by popularity
-  if (a.popularity > b.popularity) return -1;
-  if (b.popularity > a.popularity) return 1;
+  if (a.similarity < b.similarity) return 1;
+  if (a.similarity > b.similarity) return -1;
   return 0;
+  // {
+  //   if ((b.similarity - a.similarity) > 0.5) return 1;
+  //   if ((a.popularity - b.popularity) > 2) return -1;
+  //   return 1;
+  // }
+  // A is MORE similar than B
+  // if (a.similarity > b.similarity) {
+  //   if ((a.similarity - b.similarity) > 0.5) return -1;
+  //   if ((b.popularity - a.popularity) > 2) return 1;
+  //   return -1;
+  // }
+  // // They are both equally similar, sort by popularity
+  // if (a.popularity > b.popularity) return -1;
+  // if (b.popularity > a.popularity) return 1;
+  // return 0;
 }
 
 export default class MovieMatcher extends FileMatcher {
@@ -28,9 +32,12 @@ export default class MovieMatcher extends FileMatcher {
       const file = movies[loop.iteration()];
       this.match(file)
       .then(result => {
-        result.oldTitle = file.title;
-        result.oldYear = file.year;
         this.matchedFiles.push(result);
+        if (result instanceof Movie) {
+          this.matchedFilesIdentificators.push(result.name);
+        } else {
+          this.matchedFilesIdentificators.push(result.original.name);
+        }
         loop.next();
       })
       .catch(() => {
@@ -43,8 +50,10 @@ export default class MovieMatcher extends FileMatcher {
   }
 
   checkIfAlreadyMatched(movie) {
-    for (let i = 0; i < this.matchedFiles.length; i++) {
-      if (movie.name === this.matchedFiles[i].name) return this.matchedFiles[i];
+    for (let i = 0; i < this.matchedFilesIdentificators.length; i++) {
+      if (this.matchedFilesIdentificators[i] === movie.name) {
+        return this.matchedFiles[i];
+      }
     }
     return false;
   }
@@ -53,24 +62,34 @@ export default class MovieMatcher extends FileMatcher {
     return new Promise((resolve, reject) => {
       const alreadyMatched = this.checkIfAlreadyMatched(movie);
       if (alreadyMatched) {
-        movie.title = alreadyMatched.title;
-        movie.year = alreadyMatched.year;
-        resolve(movie);
+        if (alreadyMatched instanceof Movie) {
+          movie.title = alreadyMatched.title;
+          movie.year = alreadyMatched.year;
+          resolve(movie);
+        } else resolve(alreadyMatched);
       } else {
         this.client.search(movie)
         .then(results => {
           if (results.length === 0) {
             reject('No matches found.');
           }
-          if (results.length === 1) {
-            movie.title = results[0].title;
-            movie.year = results[0].release_date.split('-')[0];
+          const resultsBySimilarity = this.compareSimilarity(movie, results);
+          if (results.length > 1) console.log(`Movie ${movie.name}. Results: ${results.length}, Highest Similarity: ${resultsBySimilarity[0].similarity}, Ambiguity: ${1 - Math.abs(resultsBySimilarity[0].similarity - resultsBySimilarity[1].similarity)}.`);
+          console.log(resultsBySimilarity);
+          if (
+            results.length === 1 ||
+            resultsBySimilarity[0].similarity > 0.90 ||
+            !(Math.abs((resultsBySimilarity[0].similarity - resultsBySimilarity[1].similarity)) < 0.25)
+          ) {
+            movie.title = FileMatcher.cleanString(results[0].title);
+            movie.year = Number(results[0].release_date.split('-')[0]);
             resolve(movie);
           }
-          const mostSimilar = this.compareSimilarity(movie, results);
-          movie.title = mostSimilar.title;
-          movie.year = mostSimilar.release_date.split('-')[0];
-          resolve(movie);
+          // Else there is ambiguity
+          resolve({
+            original: movie,
+            results: resultsBySimilarity,
+          });
         })
         .catch(error => {
           reject(error);
@@ -92,7 +111,7 @@ export default class MovieMatcher extends FileMatcher {
     });
     // Sort scores by a combination of similarity and popularity in descending order
     scores.sort(comparator);
-    return scores[0];
+    return scores;
   }
 
 }

@@ -20,7 +20,7 @@ export default class SeriesParser {
    * outlander.s02e01.1080p.bluray.x264-shortbrehd.mkv
    */
   static get EXPLICIT() {
-    return /S(\d{1,3})(?:\b|[\s\-x])*(?:E(\d{1,3}(?:-\d{1,3})?(?:\.\d)?)(?:\s?v\d)?)(?:[^\\/]*$)/;
+    return /S(\d{1,3})(?:\b|[\s\-x])*(?:E(\d{1,3}(?:(?:-\d{1,3})|(?:E\d{1,3}))?(?:\.\d)?)(?:\s?v\d)?)(?:[^\\/]*$)/;
   }
 
   /**
@@ -28,7 +28,7 @@ export default class SeriesParser {
    * are in a `Season X` folder. In that case, only parse episode from file.
    */
   static get DIRECTORY() {
-    return /((?:(?!\sS(?:eason ?)?\d{1,3})[^\\/])*)[\\/]S(?:eason ?)?(\d{1,3})[\\/](?:[^\\/]+[\\/])*.*(?:\b|[\sx-])+(?:(?:Ep?(?:isode[ ._])?[ _.]?)?(\d{1,3}(?:-\d{1,3})?(?:\.\d)?)(?:[_ ]?v\d)?)(?:[^\\/]*$)/i;
+    return /((?:(?!\sS(?:eason ?)?\d{1,3})[^\\/])*)[\\/]S(?:eason ?)?(\d{1,3})[\\/](?:[^\\/]+[\\/])*.*(?:\b|[\sx-])+(?:(?:Ep?(?:isode[ ._])?[ _.]?)?(\d{1,3}(?:(?:-\d{1,3})|(?:E\d{1,3}))?(?:\.\d)?)(?:[_ ]?v\d)?)(?:[^\\/]*$)/i;
   }
 
   /**
@@ -39,7 +39,7 @@ export default class SeriesParser {
    * Spice and Wolf S1x22.5v2
    */
   static get DEFAULT() {
-    return /(?:(?:S(?:eason ?)?)?(\d{1,3}))?(?:\b|[\sx-])+(?:(?:Ep?(?:isode[ ._])?[ _.]?)?(\d{1,3}(?:-\d{1,3})?(?:\.\d)?)(?:[_ ]?v\d)?)(?:[^\\/]*$)/i;
+    return /(?:(?:S(?:eason ?)?)?(\d{1,3}))?(?:\b|[\sx-])+(?:(?:Ep?(?:isode[ ._])?[ _.]?)?(\d{1,3}(?:(?:-\d{1,3})|(?:E\d{1,3}))?(?:\.\d)?)(?:[_ ]?v\d)?)(?:[^\\/]*$)/i;
   }
 
   normalizeSeries() {
