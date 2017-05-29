@@ -11,6 +11,8 @@ export default new Vuex.Store({
     isScrolling: false,
     selected: '',
     loading: false,
+    ambiguousFiles: [],
+    hasAmbiguousFiles: false,
   },
   mutations: {
     SET_SCROLLING: (state, scrolling) => {
@@ -28,6 +30,9 @@ export default new Vuex.Store({
     REMOVE_FILE: (state, index) => {
       state.files.splice(index, 1);
     },
+    ADD_FILE: (state, file) => {
+      state.files.push(file);
+    },
     SET_SELECTED: (state, selected) => {
       if (state.selected === selected) state.selected = '';
       else state.selected = selected;
@@ -35,6 +40,18 @@ export default new Vuex.Store({
     SET_LOADING: (state, val) => {
       state.loading = val;
     },
+    ADD_AMBIGUOUS: (state, file) => {
+      state.ambiguousFiles.push(file);
+      state.hasAmbiguousFiles = true;
+    },
+    REMOVE_AMBIGUOUS: (state, index) => {
+      state.ambiguousFiles.splice(index, 1);
+    },
+    EMPTY_AMBIGUOUS: (state) => {
+      state.ambiguousFiles.length = 0;
+      state.hasAmbiguousFiles = false;
+    },
+
   },
   strict: process.env.NODE_ENV !== 'production',
 });

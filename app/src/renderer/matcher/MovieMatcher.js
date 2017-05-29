@@ -74,12 +74,10 @@ export default class MovieMatcher extends FileMatcher {
             reject('No matches found.');
           }
           const resultsBySimilarity = this.compareSimilarity(movie, results);
-          if (results.length > 1) console.log(`Movie ${movie.name}. Results: ${results.length}, Highest Similarity: ${resultsBySimilarity[0].similarity}, Ambiguity: ${1 - Math.abs(resultsBySimilarity[0].similarity - resultsBySimilarity[1].similarity)}.`);
-          console.log(resultsBySimilarity);
           if (
             results.length === 1 ||
-            resultsBySimilarity[0].similarity > 0.90 ||
-            !(Math.abs((resultsBySimilarity[0].similarity - resultsBySimilarity[1].similarity)) < 0.25)
+            (resultsBySimilarity[0].similarity > 0.90 &&
+            !(Math.abs((resultsBySimilarity[0].similarity - resultsBySimilarity[1].similarity)) < 0.2))
           ) {
             movie.title = FileMatcher.cleanString(results[0].title);
             movie.year = Number(results[0].release_date.split('-')[0]);

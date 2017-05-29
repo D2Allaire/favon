@@ -13,6 +13,7 @@
     </header>
     <main>
       <div class="container">
+        <ambiguity-modal v-if="hasAmbiguousFiles"></ambiguity-modal>
         <div class="notification" :class="notificationClasses">
           <div class="alert" :class="alertClasses">
             <div class="status">{{ alertStatus }}</div>
@@ -73,6 +74,7 @@
 <script>
   import SystemFiles from './RenameView/SystemFiles.vue';
   import RenamedFiles from './RenameView/RenamedFiles.vue';
+  import AmbiguityModal from './RenameView/AmbiguityModal.vue';
   import FileReader from '../reader/FileReader';
   import AnimeParser from '../parser/AnimeParser';
   import Anime from '../models/Anime';
@@ -87,7 +89,8 @@
   export default {
     components: {
       SystemFiles,
-      RenamedFiles
+      RenamedFiles,
+      AmbiguityModal,
     },
     name: 'rename',
     data() {
@@ -118,6 +121,9 @@
       },
       removeDisabled() {
         return this.isMatching || !Number.isInteger(this.selected); 
+      },
+      hasAmbiguousFiles() {
+        return this.$store.state.hasAmbiguousFiles;
       }
     },
     mounted() {
@@ -131,6 +137,7 @@
         this.ipc.send('open-file-dialog');
       },
       readFiles() {
+        this.closeNotification();
         this.$store.commit('SET_LOADING', true);
         const reader = new FileReader(this.path);
         reader.readDirectory()
@@ -149,20 +156,17 @@
         this.$store.commit('REMOVE_FILE', this.selected);
       },
       parseAnime() {
-        this.isMatching = true;
-        this.animeButtonClasses = 'is-loading is-empty';
+        this.setLoading('anime', true);
         const newFiles = [];
         this.files.forEach((file) => {
           const anime = new Anime(...file.getProperties());
           newFiles.push(new AnimeParser(anime).parse());
         });
         this.$store.commit('UPDATE_FILES', newFiles);
-        this.isMatching = false;
-        this.animeButtonClasses = '';
+        this.setLoading('anime', false);
       },
       parseMovie() {
-        this.isMatching = true;
-        this.movieButtonClasses = 'is-loading is-empty';
+        this.setLoading('movie', true);;
         const newFiles = [];
         const matcher = new MovieMatcher(new TMDBClient('a18acf0f4863e03582f540974a2eb294'));
         this.files.forEach((file) => {
@@ -172,30 +176,36 @@
         });
         matcher.matchFiles(newFiles, matchedFiles => {
           const matchedMovies = [];
-          const ambiguousMovies = []; 
           for (let i = 0; i < matchedFiles.length; i++) {
             if (!(matchedFiles[i] instanceof Movie)) {
-              ambiguousMovies.push(matchedFiles[i]);
+              this.$store.commit('ADD_AMBIGUOUS', matchedFiles[i]);
             } else {
               matchedMovies.push(matchedFiles[i]);
             }
           }
           this.$store.commit('UPDATE_FILES', matchedMovies);
         });
-        this.isMatching = false;
-        this.movieButtonClasses = '';
+        this.setLoading('movie', false);
       },
       parseTV() {
-        this.isMatching = true;
-        this.tvButtonClasses = 'is-loading is-empty';
+        this.setLoading('tv', true);
         const newFiles = [];
         this.files.forEach((file) => {
           const series = new Series(...file.getProperties());
           newFiles.push(new SeriesParser(series).parse());
         });
         this.$store.commit('UPDATE_FILES', newFiles);
-        this.isMatching = false;
-        this.tvButtonClasses = '';
+        this.setLoading('tv', false);
+      },
+      setLoading(type, status) {
+        if (status) {
+          this.isMatching = true;
+          this[`${type}ButtonClasses`] = 'is-empty is-loading';
+        } else {
+          this.isMatching = false;
+          this[`${type}ButtonClasses`] = '';
+        }
+        
       },
       renameFiles() {
         this.saveButtonClasses = 'is-loading is-empty';
