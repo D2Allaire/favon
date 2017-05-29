@@ -12,4 +12,10 @@ export default class FileMacher {
     string = string.replace(/:/g, ' -');
     return string;
   }
+
+  static comparator(a, b) {
+    if (a.similarity < b.similarity) return 1;
+    if (a.similarity > b.similarity) return -1;
+    return 0;
+  }
 }

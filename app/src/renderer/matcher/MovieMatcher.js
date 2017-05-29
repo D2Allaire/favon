@@ -3,28 +3,6 @@ import { syncLoop } from './utilities';
 import stringSimilarity from 'string-similarity';
 import Movie from '../models/Movie';
 
-function comparator(a, b) {
-  // B is MORE similar than A
-  if (a.similarity < b.similarity) return 1;
-  if (a.similarity > b.similarity) return -1;
-  return 0;
-  // {
-  //   if ((b.similarity - a.similarity) > 0.5) return 1;
-  //   if ((a.popularity - b.popularity) > 2) return -1;
-  //   return 1;
-  // }
-  // A is MORE similar than B
-  // if (a.similarity > b.similarity) {
-  //   if ((a.similarity - b.similarity) > 0.5) return -1;
-  //   if ((b.popularity - a.popularity) > 2) return 1;
-  //   return -1;
-  // }
-  // // They are both equally similar, sort by popularity
-  // if (a.popularity > b.popularity) return -1;
-  // if (b.popularity > a.popularity) return 1;
-  // return 0;
-}
-
 export default class MovieMatcher extends FileMatcher {
 
   matchFiles(movies, callback) {
@@ -33,6 +11,7 @@ export default class MovieMatcher extends FileMatcher {
       this.match(file)
       .then(result => {
         this.matchedFiles.push(result);
+        // To make sure only one API call gets made for both .mkv and .srt for example
         if (result instanceof Movie) {
           this.matchedFilesIdentificators.push(result.name);
         } else {
@@ -62,11 +41,17 @@ export default class MovieMatcher extends FileMatcher {
     return new Promise((resolve, reject) => {
       const alreadyMatched = this.checkIfAlreadyMatched(movie);
       if (alreadyMatched) {
+        // Can be either a movie or an ambiguity object
         if (alreadyMatched instanceof Movie) {
           movie.title = alreadyMatched.title;
           movie.year = alreadyMatched.year;
           resolve(movie);
-        } else resolve(alreadyMatched);
+        } else {
+          resolve({
+            original: movie,
+            results: alreadyMatched.results,
+          });
+        }
       } else {
         this.client.search(movie)
         .then(results => {
@@ -108,7 +93,7 @@ export default class MovieMatcher extends FileMatcher {
       });
     });
     // Sort scores by a combination of similarity and popularity in descending order
-    scores.sort(comparator);
+    scores.sort(FileMatcher.comparator);
     return scores;
   }
 

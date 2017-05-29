@@ -28,6 +28,7 @@
 <script>
   import { EventBus } from '../../event-bus';
   import Movie from '../../models/Movie';
+  import FileMatcher from '../../matcher/FileMatcher';
 
   export default {
     name: 'ambiguityModal',
@@ -61,7 +62,7 @@
             original.path,
             original.name,
             original.format,
-            selected.title,
+            FileMatcher.cleanString(selected.title),
             Number(selected.release_date.split('-')[0]),
           );
           movie.renamed = original.renamed;
@@ -74,11 +75,11 @@
                   nextOriginal.path,
                   nextOriginal.name,
                   nextOriginal.format,
-                  selected.title,
+                  FileMatcher.cleanString(selected.title),
                   Number(selected.release_date.split('-')[0]),
                 );
                 nextMovie.renamed = nextOriginal.renamed;
-                this.resolvedFiles.push(movie);
+                this.resolvedFiles.push(nextMovie);
                 this.$store.commit('REMOVE_AMBIGUOUS', i);
               }
             }
