@@ -61,7 +61,6 @@ export default class SeriesParser {
       this.series.season = result[2];
       this.series.episode = result[3];
       this.normalizeSeries();
-      console.log(`Matched ${this.series.show} as EXPLICIT`);
       return this.series;
     }
     // Match explicit directory season marker
@@ -73,7 +72,6 @@ export default class SeriesParser {
       this.series.season = result[2];
       this.series.episode = result[3];
       this.normalizeSeries();
-      console.log(`Matched ${this.series.show} as DIRECTORY`);
       return this.series;
     }
     // Default Parsing Pattern
@@ -85,7 +83,6 @@ export default class SeriesParser {
       this.series.season = result[2] || '01';
       this.series.episode = result[3];
       this.normalizeSeries();
-      console.log(`Matched ${this.series.show} as DEFAULT`);
       return this.series;
     }
 

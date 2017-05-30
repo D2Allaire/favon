@@ -10,6 +10,11 @@ export default [
     component: require('components/RenameView'),
   },
   {
+    path: '/settings',
+    name: 'settings',
+    component: require('components/SettingsView'),
+  },
+  {
     path: '*',
     redirect: '/',
   },

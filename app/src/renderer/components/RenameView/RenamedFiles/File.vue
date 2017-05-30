@@ -7,9 +7,13 @@
 </template>
 
 <script>
+import Config from 'electron-config';
 import Anime from '../../../models/Anime';
 import Series from '../../../models/Series';
 import Movie from '../../../models/Movie';
+import FileRenamer from '../../../renamer/FileRenamer';
+
+const config = new Config();
 
 export default {
   name: 'file',
@@ -22,23 +26,20 @@ export default {
       return this.$store.state.files[this.index];
     },
     name() {
-      if (this.file instanceof Anime || this.file instanceof Series) {
-        if (!this.file.show || !this.file.season || !this.file.episode) return this.file.renamed;
-        const season = this.file.season || '';
-        const episode = this.file.episode || '';
-        if (season === 'Credits') {
-          return `${this.file.show} - ${episode}`;
-        }
-        if (episode.indexOf('-') > -1) {
-          const parts = episode.split('-');
-          return `${this.file.show} - S${season}E${parts[0]}E${parts[1]}`;
-        }
-        return `${this.file.show} - S${season}E${episode}`;
-      } else if (this.file instanceof Movie) {
-        if (!this.file.title) return this.file.renamed;
-        return `${this.file.title} (${this.file.year})`;
+      let newName = this.file.renamed;
+      if (this.file instanceof Anime) {
+        if (!this.file.show || !this.file.episode) return newName;
+        newName = FileRenamer.getAnimeFileName(this.file);
       }
-      
+      else if (this.file instanceof Series) {
+        if (!this.file.show || !this.file.season || !this.file.episode) return newName;
+        newName = FileRenamer.getSeriesFileName(this.file);
+      }
+      else if (this.file instanceof Movie) {
+        if (!this.file.title || !this.file.year) return newName;
+        newName = FileRenamer.getMovieFileName(this.file, config);
+      }
+      return newName;      
     }
 
   },

@@ -10,7 +10,7 @@
         <p><em>Select a folder to start.</em></p>
         <div class="button-group">
           <button class="button is-info has-depth" @click="openFileDialog">Open Folder</button>
-          <button class="button is-warning has-depth">Settings</button>
+          <router-link to="settings" class="button is-warning has-depth">Settings</router-link>
         </div>
         <p v-if="error" class="is-warning">{{ error }}</p>
       </div>

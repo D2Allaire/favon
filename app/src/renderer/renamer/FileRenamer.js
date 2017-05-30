@@ -1,4 +1,5 @@
 import fs from 'fs';
+import Config from 'electron-config';
 import MediaFile from '../models/MediaFile';
 import Anime from '../models/Anime';
 import Series from '../models/Series';
@@ -7,25 +8,47 @@ import Movie from '../models/Movie';
 
 export default class FileRenamer {
 
+  constructor() {
+    this.config = new Config();
+  }
+
   rename(file) {
     const result = MediaFile.FILEPATH.exec(file.path);
     if (result) {
       const path = result[1];
       let newName = file.name;
       if (file instanceof Anime) {
-        if (file.season > 1) {
-          newName = `${file.show} S${file.season} - ${file.episode}.${file.format}`;
-        } else {
-          newName = `${file.show} - ${file.episode}.${file.format}`;
-        }
+        newName = FileRenamer.getAnimeFileName(file);
       } else if (file instanceof Series) {
-        newName = `${file.show} S${file.season}E${file.episode}.${file.format}`;
+        newName = FileRenamer.getSeriesFileName(file);
       } else if (file instanceof Movie) {
-        newName = `${file.title} (${file.year})`;
+        newName = FileRenamer.getMovieFileName(file, this.config);
+        console.log('New Name: ' + newName);
       }
-      fs.rename(file.path, `${path}${newName}`, (err) => {
+      fs.rename(file.path, `${path}${newName}.${file.format}`, (err) => {
         if (err) console.log(`ERROR: ${err}`);
       });
     }
+  }
+
+  static getAnimeFileName(file) {
+    if (file.season > 1) {
+      return `${file.show} S${file.season} - ${file.episode}`;
+    }
+    return `${file.show} - ${file.episode}`;
+  }
+
+  static getSeriesFileName(file) {
+    return `${file.show} S${file.season}E${file.episode}`;
+  }
+
+  static getMovieFileName(file, conf) {
+    const config = new Config();
+    let pattern = config.get('movie');
+    // If pattern is bullshit use default one
+    if (pattern.indexOf('%N') === -1) return `${file.title} (${file.year})`;
+    pattern = pattern.replace('%N', file.title);
+    pattern = pattern.replace('%Y', file.year);
+    return pattern;
   }
 }

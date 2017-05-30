@@ -7,20 +7,21 @@
           <h1>Rename Files</h1>
         </div>
         <div class="header__right">
+          <router-link to="settings" class="button is-warning is-narrow has-depth">Settings</router-link>
           <button @click="openFileDialog" class="button is-info has-depth">Open Folder</button>
         </div>
       </div>
     </header>
     <main>
-      <div class="container">
-        <ambiguity-modal v-if="hasAmbiguousFiles"></ambiguity-modal>
-        <div class="notification" :class="notificationClasses">
+      <div class="notification" :class="notificationClasses">
           <div class="alert" :class="alertClasses">
             <div class="status">{{ alertStatus }}</div>
             <div class="close">
               <button class="button is-outline is-light is-narrow" @click="closeNotification">Close</button></div>
           </div>
         </div>
+      <div class="container">
+        <ambiguity-modal v-if="hasAmbiguousFiles"></ambiguity-modal>
         <div class="panels">
           <system-files></system-files>
           <img src="./RenameView/assets/chevron.png">
@@ -294,12 +295,11 @@
 
   .notification {
     position: absolute;
-    top: 70px;
+    top: 60px;
     opacity: 0;
     transition: opacity .5s, visibility .5s;
     visibility: hidden;
-    width: calc(95% - 4rem);
-    max-width: calc(1020px - 4rem);
+    width: 100%;
 
     .alert {
       display: flex;
@@ -314,7 +314,7 @@
     }
 
     &.is-visible {
-      opacity: 1;
+      opacity: 0.9;
       visibility: visible;
 
       .alert {
@@ -336,5 +336,8 @@
       }
     }
     }
+  }
+  .button.is-warning {
+    margin-right: 20px;
   }
 </style>

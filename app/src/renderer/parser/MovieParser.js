@@ -21,13 +21,13 @@ export default class MovieParser {
       this.movie.title = result[1];
       this.movie.year = result[2];
       this.movie.normalizeTitle();
-      console.log(`Matched ${this.movie.title} as DEFAULT`);
       return this.movie;
     }
-    // Hope for the best!
-    this.movie.title = this.movie.renamed.replace(/(?:\b|[\s.-])+([A-Z]{2,}[^\s.-]*)(?:\b|[\s.-])+/g, '').trim();
+    // Hope for the best! Remove all CAPSLOCKED words.
+    this.movie.title = this.movie.renamed.replace(
+      /(?:\b|[\s.-])+([A-Z]{2,}[^\s.-]*)(?:\b|[\s.-])+/g, ''
+    ).trim();
     this.movie.normalizeTitle();
-    console.log(`Did not match ${this.movie.title} successfully.`);
     return this.movie;
   }
 
