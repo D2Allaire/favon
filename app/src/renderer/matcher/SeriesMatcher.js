@@ -1,23 +1,25 @@
 import FileMatcher from './FileMatcher';
-import { syncLoop } from './utilities';
 import stringSimilarity from 'string-similarity';
 
 export default class SeriesMatcher extends FileMatcher {
 
   matchFiles(series, callback) {
-    syncLoop(series.length, (loop) => {
-      const file = series[loop.iteration()];
+    let iterations = 0;
+    const matchedFiles = {};
+    series.forEach((file) => {
       this.match(file)
       .then(result => {
-        this.matchedFiles.push(result);
-        loop.next();
+        matchedFiles[result.show] = result;
+        if (++iterations === series.length) {
+          callback(matchedFiles);
+        }
       })
       .catch(() => {
-        this.matchedFiles.push(file);
-        loop.next();
+        matchedFiles[file.show] = file;
+        if (++iterations === series.length) {
+          callback(matchedFiles);
+        }
       });
-    }, () => {
-      callback(this.matchedFiles);
     });
   }
 

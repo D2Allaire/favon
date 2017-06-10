@@ -1,35 +1,16 @@
 import axios from 'axios';
 
-export default class TMDBClient {
+export default class TVDBClient {
   constructor(key) {
     this.key = key;
-    this.url = 'https://api.thetvdb.com';
-    this.token = '';
-    this.getJWTToken();
-  }
-
-  getJWTToken() {
-    axios.post(`${this.url}/login`, {
-      key: this.key,
-    })
-    .then(response => {
-      this.token = response.data.token;
-    });
-  }
-
-  getTVDBConnection() {
-    axios.create({
-      baseURL: `${this.url}/search/series`,
-      headers: { Authorization: `Bearer ${this.token}` },
-    });
+    this.url = 'http://localhost:3000';
   }
 
   search(series) {
-    console.log(`Sending API-Request for ${series.renamed}.${series.format}`);
+    console.log(`Sending API-Request for ${series.show} S${series.season}E${series.episode}.${series.format}`);
     return new Promise((resolve, reject) => {
       const show = encodeURI(series.show);
-      const query = `?name=${show}`;
-      this.getTVDBConnection().get(query)
+      axios.get(`${this.url}/series/search?name=${show}`)
       .then(response => {
         resolve(response.data.data);
       })

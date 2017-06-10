@@ -206,9 +206,10 @@
           }
           newFiles.push(parsedSeries);
         });
-        matcher.matchFiles(Object.values(this.parsedSeries), matchedFiles => {
-          const matchedShows = [];
-          console.log(matchedShows);
+        console.log(this.parsedShows);
+        matcher.matchFiles(Object.values(this.parsedShows), matchedFiles => {
+          console.log(matchedFiles);
+          
         });
         this.$store.commit('UPDATE_FILES', newFiles);
         this.setLoading('tv', false);
