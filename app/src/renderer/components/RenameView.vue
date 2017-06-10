@@ -209,7 +209,7 @@
         console.log(this.parsedShows);
         matcher.matchFiles(Object.values(this.parsedShows), matchedFiles => {
           console.log(matchedFiles);
-          
+
         });
         this.$store.commit('UPDATE_FILES', newFiles);
         this.setLoading('tv', false);
@@ -241,7 +241,7 @@
       },
 
       showAlreadyParsed(name) {
-        return (this.$store.state.parsedSeries.indexOf(name) > -1);
+        return (this.$store.state.parsedShows.indexOf(name) > -1);
       }
     },
   };
