@@ -19,6 +19,10 @@ export default class Movie extends MediaFile {
     return this;
   }
 
+  getNamePartsByDelimiter(delimiter) {
+    return this.title.split(delimiter);
+  }
+
   getProperties() {
     return [
       this.path,

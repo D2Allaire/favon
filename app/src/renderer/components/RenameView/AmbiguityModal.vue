@@ -3,7 +3,7 @@
     <div class="lm-modal-container">
       <div class="lm-modal-title">
         Please select the correct movie/show.
-        <a href="#0" class="lm-modal-close">Close</a>
+        <a  @click="cancelCheck" class="lm-modal-close">Close</a>
       </div>
       <div class="lm-modal-body">
         <p>File: <strong>{{ ambiguousFiles.length > 0 ? ambiguousFiles[currentIndex].original.name : '' }}</strong></p>
@@ -52,7 +52,15 @@
         this.selected = index;
       },
       cancelCheck() {
-        this.$store.commit('EMPTY_AMBIGUOUS');
+        this.$store.commit('REMOVE_AMBIGUOUS', this.currentIndex);
+        if ((this.currentIndex + 1) >= this.ambiguousFiles.length) {
+          for (let i = 0; i < this.resolvedFiles.length; i++) {
+            this.$store.commit('ADD_FILE', this.resolvedFiles[i]);
+          }
+          this.$store.commit('EMPTY_AMBIGUOUS');
+        } else {
+          this.currentIndex++;
+        }
       },
       resolveFile() {
         const original = this.ambiguousFiles[this.currentIndex].original;

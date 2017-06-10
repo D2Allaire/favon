@@ -7,7 +7,7 @@ export default new Vuex.Store({
   state: {
     path: '',
     files: [],
-    renamed: [],
+    parsedShows: {},
     isScrolling: false,
     selected: '',
     loading: false,
@@ -51,7 +51,15 @@ export default new Vuex.Store({
       state.ambiguousFiles.length = 0;
       state.hasAmbiguousFiles = false;
     },
-
+    ADD_PARSED_SHOW: (state, series) => {
+      Vue.set(state.parsedShows, series.show, series);
+    },
+    UPDATE_PARSED_SHOW: (state, series) => {
+      state.parsedShows[series.show] = series;
+    },
+    REMOVE_PARSED_SHOW: (state, name) => {
+      Vue.delete(state.parsedShows, name);
+    },
   },
   strict: process.env.NODE_ENV !== 'production',
 });

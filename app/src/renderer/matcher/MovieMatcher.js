@@ -13,15 +13,42 @@ export default class MovieMatcher extends FileMatcher {
         this.matchedFiles.push(result);
         // To make sure only one API call gets made for both .mkv and .srt for example
         if (result instanceof Movie) {
-          this.matchedFilesIdentificators.push(result.name);
+          this.matchedFilesIdentificators[result.name] = result;
         } else {
-          this.matchedFilesIdentificators.push(result.original.name);
+          this.matchedFilesIdentificators[result.original.name] = result;
         }
         loop.next();
       })
+      // No result came back from API.
       .catch(() => {
-        this.matchedFiles.push(file);
-        loop.next();
+        const parts = file.getNamePartsByDelimiter('-');
+        const matchedParts = [];
+        syncLoop(parts.length, (partsLoop) => {
+          if (parts[partsLoop.iteration()].length < 3) partsLoop.next();
+          const newMovie = new Movie(...file.getProperties());
+          newMovie.title = parts[partsLoop.iteration()];
+          console.log(`Attempting to match ${newMovie.title}`);
+          this.match(newMovie)
+          .then(result => {
+            matchedParts.push(result);
+            partsLoop.next();
+          })
+          .catch(() => {
+            partsLoop.next();
+          });
+        }, () => {
+          matchedParts.sort(FileMatcher.partComparator);
+          console.log(matchedParts);
+          this.matchedFiles.push(matchedParts[0]);
+          const result = matchedParts[0];
+          // To make sure only one API call gets made for both .mkv and .srt for example
+          if (result instanceof Movie) {
+            this.matchedFilesIdentificators[result.name] = result;
+          } else {
+            this.matchedFilesIdentificators[result.original.name] = result;
+          }
+          loop.next();
+        });
       });
     }, () => {
       callback(this.matchedFiles);
@@ -29,10 +56,8 @@ export default class MovieMatcher extends FileMatcher {
   }
 
   checkIfAlreadyMatched(movie) {
-    for (let i = 0; i < this.matchedFilesIdentificators.length; i++) {
-      if (this.matchedFilesIdentificators[i] === movie.name) {
-        return this.matchedFiles[i];
-      }
+    if (this.matchedFilesIdentificators[movie.name] !== undefined) {
+      return this.matchedFilesIdentificators[movie.name];
     }
     return false;
   }
@@ -64,8 +89,9 @@ export default class MovieMatcher extends FileMatcher {
             (resultsBySimilarity[0].similarity > 0.90 &&
             !(Math.abs((resultsBySimilarity[0].similarity - resultsBySimilarity[1].similarity)) < 0.2))
           ) {
-            movie.title = FileMatcher.cleanString(results[0].title);
-            movie.year = Number(results[0].release_date.split('-')[0]);
+            movie.title = FileMatcher.cleanString(resultsBySimilarity[0].title);
+            movie.year = Number(resultsBySimilarity[0].release_date.split('-')[0]);
+            movie.similarity = resultsBySimilarity[0].similarity;
             resolve(movie);
           }
           // Else there is ambiguity

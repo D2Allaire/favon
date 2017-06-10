@@ -86,6 +86,8 @@
   import FileRenamer from '../renamer/FileRenamer';
   import TMDBClient from '../matcher/TMDBClient';
   import MovieMatcher from '../matcher/MovieMatcher';
+  import TVDBClient from '../matcher/TVDBClient';
+  import SeriesMatcher from '../matcher/SeriesMatcher';
 
   export default {
     components: {
@@ -125,6 +127,9 @@
       },
       hasAmbiguousFiles() {
         return this.$store.state.hasAmbiguousFiles;
+      },
+      parsedShows() {
+        return this.$store.state.parsedShows;
       }
     },
     mounted() {
@@ -169,7 +174,7 @@
       parseMovie() {
         this.setLoading('movie', true);;
         const newFiles = [];
-        const matcher = new MovieMatcher(new TMDBClient('a18acf0f4863e03582f540974a2eb294'));
+        const matcher = new MovieMatcher(new TMDBClient(process.env.TMDB_KEY));
         this.files.forEach((file) => {
           const movie = new Movie(...file.getProperties());
           const parsedMovie = new MovieParser(movie).parse();
@@ -191,9 +196,19 @@
       parseTV() {
         this.setLoading('tv', true);
         const newFiles = [];
+        const matcher = new SeriesMatcher(new TVDBClient(process.env.TVDB_KEY));
         this.files.forEach((file) => {
           const series = new Series(...file.getProperties());
-          newFiles.push(new SeriesParser(series).parse());
+          const parsedSeries = new SeriesParser(series).parse();
+          if (parsedSeries.show.length > 0 
+            && this.parsedShows[parsedSeries.show] === undefined) {
+            this.$store.commit('ADD_PARSED_SHOW', parsedSeries);
+          }
+          newFiles.push(parsedSeries);
+        });
+        matcher.matchFiles(Object.values(this.parsedSeries), matchedFiles => {
+          const matchedShows = [];
+          console.log(matchedShows);
         });
         this.$store.commit('UPDATE_FILES', newFiles);
         this.setLoading('tv', false);
@@ -222,6 +237,10 @@
 
       closeNotification() {
         this.notificationClasses = '';
+      },
+
+      showAlreadyParsed(name) {
+        return (this.$store.state.parsedSeries.indexOf(name) > -1);
       }
     },
   };
