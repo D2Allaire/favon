@@ -43,7 +43,7 @@ export default class SeriesParser {
   }
 
   normalizeSeries() {
-    return this.series.normalizeShow().normalizeSeason().normalizeEpisode();
+    return this.series.normalizeShow();
   }
 
   cleanFileName() {
@@ -58,8 +58,8 @@ export default class SeriesParser {
     ).exec(this.series.renamed);
     if (result) {
       this.series.show = result[1];
-      this.series.season = result[2];
-      this.series.episode = result[3];
+      this.series.season = Number(result[2]);
+      this.series.episode = Number(result[3]);
       this.normalizeSeries();
       return this.series;
     }
@@ -69,8 +69,8 @@ export default class SeriesParser {
     ).exec(this.series.getCleanPath());
     if (result) {
       this.series.show = result[1];
-      this.series.season = result[2];
-      this.series.episode = result[3];
+      this.series.season = Number(result[2]);
+      this.series.episode = Number(result[3]);
       this.normalizeSeries();
       return this.series;
     }
@@ -80,8 +80,8 @@ export default class SeriesParser {
     ).exec(this.series.renamed);
     if (result) {
       this.series.show = result[1];
-      this.series.season = result[2] || '01';
-      this.series.episode = result[3];
+      this.series.season = Number(result[2]) || 1;
+      this.series.episode = Number(result[3]);
       this.normalizeSeries();
       return this.series;
     }
