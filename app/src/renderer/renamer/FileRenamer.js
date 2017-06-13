@@ -8,8 +8,10 @@ import Movie from '../models/Movie';
 
 export default class FileRenamer {
 
-  constructor() {
-    this.config = new Config();
+  static cleanString(string) {
+    string = string.replace(/[/?<>\\*|^"]/g, '');
+    string = string.replace(/:/g, ' -');
+    return string;
   }
 
   rename(file) {
@@ -22,7 +24,7 @@ export default class FileRenamer {
       } else if (file instanceof Series) {
         newName = FileRenamer.getSeriesFileName(file);
       } else if (file instanceof Movie) {
-        newName = FileRenamer.getMovieFileName(file, this.config);
+        newName = FileRenamer.getMovieFileName(file);
         console.log('New Name: ' + newName);
       }
       fs.rename(file.path, `${path}${newName}.${file.format}`, (err) => {
@@ -39,14 +41,17 @@ export default class FileRenamer {
   }
 
   static getSeriesFileName(file) {
-    return `${file.show} S${file.season}E${file.episode}`;
+    const season = file.normalizeSeason();
+    const episode = file.normalizeEpisode();
+    if (file.title !== '') return `${file.show} S${season}E${episode} - ${file.title}`;
+    return `${file.show} S${season}E${episode}`;
   }
 
-  static getMovieFileName(file, conf) {
+  static getMovieFileName(file) {
     const config = new Config();
     let pattern = config.get('movie');
     // If pattern is bullshit use default one
-    if (pattern.indexOf('%N') === -1) return `${file.title} (${file.year})`;
+    if (pattern && pattern.indexOf('%N') === -1) return `${file.title} (${file.year})`;
     pattern = pattern.replace('%N', file.title);
     pattern = pattern.replace('%Y', file.year);
     return pattern;
