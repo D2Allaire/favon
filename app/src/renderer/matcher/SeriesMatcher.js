@@ -52,6 +52,22 @@ export default class SeriesMatcher extends FileMatcher {
     });
   }
 
+  requestEpisodes(id) {
+    return new Promise((resolve, reject) => {
+      const episodes = {};
+      this.client.get(id, 1)
+      .then(results => {
+        results.data.forEach(episode => {
+          episodes[`S${episode.airedSeason}E${episode.airedEpisodeNumber}`] = episode;
+        });
+        resolve(episodes);
+      })
+      .catch(error => {
+        reject(error);
+      });
+    });
+  }
+
   compareSimilarity(series, results) {
     const scores = [];
     results.forEach(result => {

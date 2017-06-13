@@ -2,11 +2,12 @@ import MediaFile from './MediaFile';
 
 export default class Series extends MediaFile {
 
-  constructor(path, name, format, season = '', episode = '', show = '') {
+  constructor(path, name, format, season = '', episode = '', show = '', title = '') {
     super(path, name, format);
     this.season = season;
     this.episode = episode;
     this.show = show;
+    this.title = title;
   }
 
   /**
@@ -24,16 +25,16 @@ export default class Series extends MediaFile {
    * Make sure the season marker is at least two characters long: `2` -> `02`
    */
   normalizeSeason() {
-    if (this.season.length < 2) this.season = `0${this.season}`;
-    return this;
+    if (this.season.toString().length < 2) return `0${this.season}`;
+    return this.season;
   }
 
   /**
    * Make sure the episode marker is at least two characters long: `8` -> `08`
    */
   normalizeEpisode() {
-    if (this.episode.length < 2) this.episode = `0${this.episode}`;
-    return this;
+    if (this.episode.toString().length < 2) return `0${this.episode}`;
+    return this.episode;
   }
 
   getProperties() {

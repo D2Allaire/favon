@@ -200,19 +200,37 @@
         this.files.forEach((file) => {
           const series = new Series(...file.getProperties());
           const parsedSeries = new SeriesParser(series).parse();
+          // Only add each show once
           if (parsedSeries.show.length > 0 
             && this.parsedShows[parsedSeries.show] === undefined) {
-            this.$store.commit('ADD_PARSED_SHOW', parsedSeries);
+            this.$store.commit('ADD_PARSED_SHOW', new Series(...parsedSeries.getProperties()));
           }
           newFiles.push(parsedSeries);
         });
-        console.log(this.parsedShows);
+        // After matching show, clear ambigous entries and request episodes from API.
         matcher.matchFiles(Object.values(this.parsedShows), matchedFiles => {
-          console.log(matchedFiles);
-
+          for (let series in matchedFiles) {
+            if (!(matchedFiles[series] instanceof Series)) {
+              console.log('Ambigious.');
+              this.$store.commit('ADD_AMBIGUOUS', matchedFiles[series]);
+            } else {
+              matcher.requestEpisodes(matchedFiles[series].matchedId)
+              .then((episodes) => {
+                newFiles.forEach(file => {
+                  if (episodes[`S${file.season}E${file.episode}`]) {
+                    file.title = FileRenamer.cleanString(episodes[`S${file.season}E${file.episode}`].episodeName);
+                    file.show = matchedFiles[series].matchedShow;
+                  }
+                });
+                this.$store.commit('UPDATE_FILES', newFiles);
+                this.setLoading('tv', false);
+              })
+              .catch(error => {
+                console.error(error.message);
+              });
+            }
+          }
         });
-        this.$store.commit('UPDATE_FILES', newFiles);
-        this.setLoading('tv', false);
       },
       setLoading(type, status) {
         if (status) {
@@ -241,7 +259,7 @@
       },
 
       showAlreadyParsed(name) {
-        return (this.$store.state.parsedShows.indexOf(name) > -1);
+        return (this.parsedShows.indexOf(name) > -1);
       }
     },
   };
