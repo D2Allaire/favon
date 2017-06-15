@@ -10,7 +10,10 @@ export default class FileRenamer {
 
   static cleanString(string) {
     string = string.replace(/[/?<>\\*|^"]/g, '');
-    string = string.replace(/:/g, ' -');
+    // Re:Zero -> Re-Zero
+    string = string.replace(/(\w):(\w)/g, '$1-$2');
+    // Spider-Man: Homecoming -> Spider-Man - Homecoming
+    string = string.replace(/:([^\w])/g, ' -$1');
     return string;
   }
 
