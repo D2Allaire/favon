@@ -1,9 +1,5 @@
 export default class SeriesParser {
 
-  constructor(series) {
-    this.series = series;
-  }
-
   /**
    * Base pattern to match show name. Matches any string at the start of the filename
    * that is not immediately followed by ` S1` or a similar season indicator.
@@ -42,51 +38,49 @@ export default class SeriesParser {
     return /(?:(?:S(?:eason ?)?)?(\d{1,3}))?(?:\b|[\sx-])+(?:(?:Ep?(?:isode[ ._])?[ _.]?)?(\d{1,3}(?:(?:-\d{1,3})|(?:E\d{1,3}))?(?:\.\d)?)(?:[_ ]?v\d)?)(?:[^\\/]*$)/i;
   }
 
-  normalizeSeries() {
-    return this.series.normalizeShow();
+  normalizeSeries(series) {
+    return series.normalizeShow();
   }
 
-  cleanFileName() {
-    return this.series.removeDelimiters().removeKeywords();
+  cleanFileName(series) {
+    return series.removeDelimiters().removeKeywords();
   }
 
-  parse() {
-    this.cleanFileName();
+  parse(series) {
+    this.cleanFileName(series);
     // Explicit Pattern
     let result = new RegExp(
       SeriesParser.BASE.source + SeriesParser.EXPLICIT.source, 'i'
-    ).exec(this.series.renamed);
+    ).exec(series.renamed);
     if (result) {
-      this.series.show = result[1];
-      this.series.season = Number(result[2]);
-      this.series.episode = Number(result[3]);
-      this.normalizeSeries();
-      return this.series;
+      series.show = result[1];
+      series.season = Number(result[2]);
+      series.episode = Number(result[3]);
+      this.normalizeSeries(series);
+      return;
     }
     // Match explicit directory season marker
     result = new RegExp(
       SeriesParser.DIRECTORY.source, 'i'
-    ).exec(this.series.getCleanPath());
+    ).exec(series.getCleanPath());
     if (result) {
-      this.series.show = result[1];
-      this.series.season = Number(result[2]);
-      this.series.episode = Number(result[3]);
-      this.normalizeSeries();
-      return this.series;
+      series.show = result[1];
+      series.season = Number(result[2]);
+      series.episode = Number(result[3]);
+      this.normalizeSeries(series);
+      return;
     }
     // Default Parsing Pattern
     result = new RegExp(
       SeriesParser.BASE.source + SeriesParser.DEFAULT.source, 'i'
-    ).exec(this.series.renamed);
+    ).exec(series.renamed);
     if (result) {
-      this.series.show = result[1];
-      this.series.season = Number(result[2]) || 1;
-      this.series.episode = Number(result[3]);
-      this.normalizeSeries();
-      return this.series;
+      series.show = result[1];
+      series.season = Number(result[2]) || 1;
+      series.episode = Number(result[3]);
+      this.normalizeSeries(series);
+      return;
     }
-
-    return this.series;
   }
 
 }

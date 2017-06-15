@@ -25,7 +25,6 @@ export default class FileRenamer {
         newName = FileRenamer.getSeriesFileName(file);
       } else if (file instanceof Movie) {
         newName = FileRenamer.getMovieFileName(file);
-        console.log('New Name: ' + newName);
       }
       fs.rename(file.path, `${path}${newName}.${file.format}`, (err) => {
         if (err) console.log(`ERROR: ${err}`);

@@ -87,6 +87,7 @@ export default {
     'SD',
     '1080P',
     '720P',
+    'iNTERNAL',
   ],
 
   anime: [
