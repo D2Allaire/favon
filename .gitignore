@@ -1,13 +1,11 @@
 .DS_Store
-app/dist/index.html
-app/dist/main.js
-app/dist/renderer.js
-app/dist/styles.css
-builds/*
+dist/electron/*
+dist/web/*
+build/*
+!build/icons
 coverage
 node_modules/
 npm-debug.log
 npm-debug.log.*
 thumbs.db
 !.gitkeep
-.env
