@@ -8,9 +8,9 @@
       <div class="lm-modal-body">
         <p>File: <strong>{{ ambiguousFiles.length > 0 ? ambiguousFiles[currentIndex].original.name : '' }}</strong></p>
         <ul v-if="ambiguousFiles.length > 0">
-          <li v-for="(title, index) in ambiguousFiles[currentIndex].results">
+          <li v-for="(result, index) in ambiguousFiles[currentIndex].results">
             <a @click="toggleSelected(index)" :class="{ selected : selected === index }">
-              {{ title.title }} ({{title.release_date.split('-')[0]}})
+              {{ getTitle(index) }}
             </a>
           </li>
         </ul>
@@ -28,6 +28,7 @@
 <script>
   import { EventBus } from '../../event-bus';
   import Movie from '../../models/Movie';
+  import Series from '../../models/Series';
   import FileMatcher from '../../matcher/FileMatcher';
 
   export default {
@@ -48,6 +49,17 @@
       }
     },
     methods: {
+      getTitle(index) {
+        const original = this.ambiguousFiles[this.currentIndex].original;
+        const selected = this.ambiguousFiles[this.currentIndex].results[index];
+        if (original instanceof Movie) {
+          return `${selected.title} ${selected.release_date.split('-')[0]}`;
+        }
+        if (original instanceof Series) {
+          return `${selected.seriesName}`;
+        }
+      },
+
       toggleSelected(index) {
         this.selected = index;
       },
@@ -92,15 +104,24 @@
               }
             }
           }
-        }          
-        if ((this.currentIndex + 1) >= this.ambiguousFiles.length) {
-          for (let i = 0; i < this.resolvedFiles.length; i++) {
-            this.$store.commit('ADD_FILE', this.resolvedFiles[i]);
-          }
-          this.$store.commit('EMPTY_AMBIGUOUS');
-        } else {
-          this.currentIndex++;
+          
         }
+        if (original instanceof Series) {
+          const series = new Series(...original.getProperties());
+          series.matchedShow = selected.seriesName;
+          series.renamed = original.renamed;
+          series.id = selected.id;
+
+          EventBus.$emit('series-ambiguity-cleared', selected);
+
+          if ((this.currentIndex + 1) >= this.ambiguousFiles.length) {
+            this.$store.commit('EMPTY_AMBIGUOUS');
+          } else {
+            this.currentIndex++;
+          }
+        }
+
+        
       }
     }
   };

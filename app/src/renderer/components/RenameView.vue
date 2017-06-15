@@ -73,6 +73,7 @@
 </template>
 
 <script>
+  import { EventBus } from '../event-bus';
   import SystemFiles from './RenameView/SystemFiles.vue';
   import RenamedFiles from './RenameView/RenamedFiles.vue';
   import AmbiguityModal from './RenameView/AmbiguityModal.vue';
@@ -107,6 +108,12 @@
         alertStatus: 'All files have been renamed.',
         notificationClasses: '',
         error: '',
+        newFiles: {},
+        uniqueSeriesAmount: 0,
+        seriesCleared: 0,
+        episodesCleared: 0,
+        episodesCount: 0,
+        updatedFiles: [],
       }
     },
     computed: {
@@ -137,6 +144,7 @@
         this.$store.commit('SET_PATH', path[0]);
         this.readFiles();
       });
+      EventBus.$on('series-ambiguity-cleared', this.requestEpisodes);
     },
     methods: {
       openFileDialog() {
@@ -148,6 +156,7 @@
         const reader = new FileReader(this.path);
         reader.readDirectory()
           .then((files) => {
+            this.newFiles.length = 0;
             this.$store.commit('EMPTY_FILES');
             this.$store.commit('UPDATE_FILES', files);
             this.$store.commit('SET_LOADING', false);
@@ -195,43 +204,76 @@
       },
       parseTV() {
         this.setLoading('tv', true);
-        const newFiles = [];
+        const parser = new SeriesParser();
         const matcher = new SeriesMatcher(new TVDBClient(process.env.TVDB_KEY));
         this.files.forEach((file) => {
-          const series = new Series(...file.getProperties());
-          const parsedSeries = new SeriesParser(series).parse();
+          const episode = new Series(...file.getProperties());
+          parser.parse(episode);
+          console.log(episode);
           // Only add each show once
-          if (parsedSeries.show.length > 0 
-            && this.parsedShows[parsedSeries.show] === undefined) {
-            this.$store.commit('ADD_PARSED_SHOW', new Series(...parsedSeries.getProperties()));
+          if (episode.show.length > 0 
+            && this.parsedShows[episode.show] === undefined) {
+            this.$store.commit('ADD_PARSED_SHOW', new Series(...episode.getProperties()));
           }
-          newFiles.push(parsedSeries);
+          if (!this.newFiles[episode.show]) this.newFiles[episode.show] = [];
+          this.newFiles[episode.show].push(episode);
+          this.episodesCount++;
         });
         // After matching show, clear ambigous entries and request episodes from API.
         matcher.matchFiles(Object.values(this.parsedShows), matchedFiles => {
+          this.uniqueSeriesAmount = Object.keys(matchedFiles).length;
           for (let series in matchedFiles) {
+            // If it's not a series it's an array and thus ambigious
             if (!(matchedFiles[series] instanceof Series)) {
               console.log('Ambigious.');
               this.$store.commit('ADD_AMBIGUOUS', matchedFiles[series]);
             } else {
-              matcher.requestEpisodes(matchedFiles[series].matchedId)
-              .then((episodes) => {
-                newFiles.forEach(file => {
-                  if (episodes[`S${file.season}E${file.episode}`]) {
-                    file.title = FileRenamer.cleanString(episodes[`S${file.season}E${file.episode}`].episodeName);
-                    file.show = matchedFiles[series].matchedShow;
+              // If ID is undefined we got no response from API (no results)
+              if (matchedFiles[series].id === undefined) {
+                if (++this.seriesCleared === this.uniqueSeriesAmount) this.setLoading('tv', false);
+                if(++this.episodesCleared === this.episodesCount) {
+                  const finishedSeries = Object.values(this.newFiles);
+                  for(let i = 0; i < finishedSeries.length; i++) {
+                    this.updatedFiles = this.updatedFiles.concat(finishedSeries[i]);
                   }
-                });
-                this.$store.commit('UPDATE_FILES', newFiles);
-                this.setLoading('tv', false);
-              })
-              .catch(error => {
-                console.error(error.message);
-              });
+                  this.$store.commit('UPDATE_FILES', this.updatedFiles);
+                }
+              } else {
+                console.log(`Processing ${matchedFiles[series].show}`);
+                this.requestEpisodes(matchedFiles[series]);
+              }
             }
           }
         });
+        
       },
+
+      requestEpisodes(series) {
+        const matcher = new SeriesMatcher(new TVDBClient(process.env.TVDB_KEY));
+        matcher.requestEpisodes(series.id)
+          .then((show) => {
+            this.newFiles[series.show].forEach(file => {
+              if (show.episodes[`S${file.season}E${file.episode}`]) {
+                file.title = FileRenamer.cleanString(show.episodes[`S${file.season}E${file.episode}`]);
+                file.show = FileRenamer.cleanString(show.show);
+              }
+              this.episodesCleared++;
+            });
+            if (++this.seriesCleared === this.uniqueSeriesAmount) this.setLoading('tv', false);
+            if(this.episodesCleared === this.episodesCount) {
+              const finishedSeries = Object.values(this.newFiles);
+              for(let i = 0; i < finishedSeries.length; i++) {
+                this.updatedFiles = this.updatedFiles.concat(finishedSeries[i]);
+              }
+              this.$store.commit('UPDATE_FILES', this.updatedFiles);
+            }
+          })
+          .catch(error => {
+            if (++this.seriesCleared === this.uniqueSeriesAmount) this.setLoading('tv', false);
+            console.error(error);
+          });
+      },
+
       setLoading(type, status) {
         if (status) {
           this.isMatching = true;

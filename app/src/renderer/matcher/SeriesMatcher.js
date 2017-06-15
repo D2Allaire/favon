@@ -33,11 +33,12 @@ export default class SeriesMatcher extends FileMatcher {
         const resultsBySimilarity = this.compareSimilarity(series, results);
         if (
           results.length === 1 ||
+          resultsBySimilarity[0].similarity > 0.95 ||
           (resultsBySimilarity[0].similarity > 0.90 &&
           (Math.abs((resultsBySimilarity[0].similarity - resultsBySimilarity[1].similarity)) > 0.2))
         ) {
-          series.matchedShow = FileMatcher.cleanString(results[0].seriesName);
-          series.matchedId = results[0].id;
+          series.matchedShow = FileMatcher.cleanString(resultsBySimilarity[0].seriesName);
+          series.id = resultsBySimilarity[0].id;
           resolve(series);
         }
         // Else there is ambiguity
@@ -55,12 +56,17 @@ export default class SeriesMatcher extends FileMatcher {
   requestEpisodes(id) {
     return new Promise((resolve, reject) => {
       const episodes = {};
-      this.client.get(id, 1)
-      .then(results => {
-        results.data.forEach(episode => {
-          episodes[`S${episode.airedSeason}E${episode.airedEpisodeNumber}`] = episode;
+      this.client.get(id)
+      .then(data => {
+        data.Episodes.forEach(episode => {
+          episodes[`S${episode.airedSeason}E${episode.airedEpisodeNumber}`] = episode.episodeName;
         });
-        resolve(episodes);
+        resolve({
+          id: data.id,
+          show: data.seriesName,
+          aliases: data.aliases,
+          episodes,
+        });
       })
       .catch(error => {
         reject(error);
@@ -77,7 +83,8 @@ export default class SeriesMatcher extends FileMatcher {
       for (let i = 0; i < result.aliases.length; i++) {
         similarities.push(stringSimilarity.compareTwoStrings(series.show, result.aliases[i]));
       }
-      similarities.sort();
+      // Sort descending
+      similarities.sort().reverse();
 
       scores.push({
         seriesName: result.seriesName,

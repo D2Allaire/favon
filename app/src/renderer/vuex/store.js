@@ -25,13 +25,16 @@ export default new Vuex.Store({
       state.files = files;
     },
     EMPTY_FILES: (state) => {
-      state.files.length = 0;
+      state.files = [];
     },
     REMOVE_FILE: (state, index) => {
       state.files.splice(index, 1);
     },
     ADD_FILE: (state, file) => {
       state.files.push(file);
+    },
+    ADD_FILES: (state, files) => {
+      state.files = state.files.concat(files);
     },
     SET_SELECTED: (state, selected) => {
       if (state.selected === selected) state.selected = '';
