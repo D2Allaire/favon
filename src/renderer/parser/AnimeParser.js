@@ -1,7 +1,7 @@
 import SeriesParser from './SeriesParser';
+import Anime from '../models/Anime';
 
 export default class AnimeParser extends SeriesParser {
-
   /**
    * Matches anime credits. Examples:
    * Railgun S - NCOP
@@ -29,86 +29,106 @@ export default class AnimeParser extends SeriesParser {
   }
 
 
-  cleanFileName() {
-    return this.series.removeBrackets().removeDelimiters().removeKeywords();
+  /**
+   * Parse and array of files
+   * @param {Array} files to be parsed
+   * @return {Object} parsedFiles with information on unique shows and episode count
+   */
+  parseFiles(files) {
+    files.forEach((file) => {
+      const parsedEpisode = AnimeParser.parse(new Anime(...file.getProperties()));
+      // Only add each show once
+      if (parsedEpisode.show.length > 0 &&
+      this.parsedFiles.uniqueShows[parsedEpisode.show] === undefined) {
+        this.parsedFiles.uniqueShows[parsedEpisode.show] =
+        new Anime(...parsedEpisode.getProperties());
+      }
+      // Make sure an array exists for this show
+      if (!this.parsedFiles.parsed[parsedEpisode.show]) {
+        this.parsedFiles.parsed[parsedEpisode.show] = [];
+      }
+      this.parsedFiles.parsed[parsedEpisode.show].push(parsedEpisode);
+      this.parsedFiles.episodeCount++;
+    });
+    return this.parsedFiles;
   }
 
-  parse() {
-    this.cleanFileName();
+  static parse(series) {
+    series.cleanFileName();
     // Explicit Pattern
     let result = new RegExp(
       SeriesParser.BASE.source + SeriesParser.EXPLICIT.source, 'i',
-    ).exec(this.series.renamed);
+    ).exec(series.renamed);
     if (result) {
-      this.series.show = result[1];
-      this.series.season = result[2];
-      this.series.episode = result[3];
-      this.normalizeSeries();
-      console.log(`Matched ${this.series.show} as EXPLICIT`);
-      return this.series;
+      series.show = result[1];
+      series.season = result[2];
+      series.episode = result[3];
+      SeriesParser.normalizeSeries(series);
+      console.log(`Matched ${series.show} as EXPLICIT`);
+      return series;
     }
     // Credits Pattern
     result = new RegExp(
       SeriesParser.BASE.source + AnimeParser.CREDITS.source,
-    ).exec(this.series.renamed);
+    ).exec(series.renamed);
     if (result) {
-      this.series.show = result[1];
-      this.series.season = 'Credits';
-      this.series.episode = result[2];
-      this.normalizeSeries();
-      console.log(`Matched ${this.series.show} as CREDITS`);
-      return this.series;
+      series.show = result[1];
+      series.season = 'Credits';
+      series.episode = result[2];
+      SeriesParser.normalizeSeries(series);
+      console.log(`Matched ${series.show} as CREDITS`);
+      return series;
     }
     // Specials Before Pattern
     result = new RegExp(
       SeriesParser.BASE.source + AnimeParser.SPECIAL_BEFORE.source, 'i',
-    ).exec(this.series.renamed);
+    ).exec(series.renamed);
     if (result) {
-      this.series.show = result[1];
-      this.series.season = '00';
-      this.series.episode = result[3];
-      this.normalizeSeries();
-      console.log(`Matched ${this.series.show} as SPECIAL_BEFORE`);
-      return this.series;
+      series.show = result[1];
+      series.season = '00';
+      series.episode = result[3];
+      SeriesParser.normalizeSeries(series);
+      console.log(`Matched ${series.show} as SPECIAL_BEFORE`);
+      return series;
     }
     // Specials After Pattern
     result = new RegExp(
       SeriesParser.BASE.source + AnimeParser.SPECIAL_AFTER.source, 'i',
-    ).exec(this.series.renamed);
+    ).exec(series.renamed);
     if (result) {
-      this.series.show = result[1];
-      this.series.season = '00';
-      this.series.episode = result[2];
-      this.normalizeSeries();
-      console.log(`Matched ${this.series.show} as SPECIAL_AFTER`);
-      return this.series;
+      series.show = result[1];
+      series.season = '00';
+      series.episode = result[2];
+      SeriesParser.normalizeSeries(series);
+      console.log(`Matched ${series.show} as SPECIAL_AFTER`);
+      return series;
     }
     // Match explicit directory season marker
     result = new RegExp(
       SeriesParser.DIRECTORY.source, 'i',
-    ).exec(this.series.getCleanPath());
+    ).exec(series.getCleanPath());
     if (result) {
-      this.series.show = result[1];
-      this.series.season = result[2];
-      this.series.episode = result[3];
-      this.normalizeSeries();
-      console.log(`Matched ${this.series.show} as DIRECTORY`);
-      return this.series;
+      series.show = result[1];
+      series.season = result[2];
+      series.episode = result[3];
+      SeriesParser.normalizeSeries(series);
+      console.log(`Matched ${series.show} as DIRECTORY`);
+      return series;
     }
     // Default Parsing Pattern
     result = new RegExp(
       SeriesParser.BASE.source + SeriesParser.DEFAULT.source, 'i',
-    ).exec(this.series.renamed);
+    ).exec(series.renamed);
     if (result) {
-      this.series.show = result[1];
-      this.series.season = result[2] || '01';
-      this.series.episode = result[3];
-      this.normalizeSeries();
-      console.log(`Matched ${this.series.show} as DEFAULT`);
-      return this.series;
+      series.show = result[1];
+      series.season = result[2] || '01';
+      series.episode = result[3];
+      SeriesParser.normalizeSeries(series);
+      console.log(`Matched ${series.show} as DEFAULT`);
+      return series;
     }
 
-    return this.series;
+    return series;
   }
 
 }

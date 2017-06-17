@@ -1,28 +1,56 @@
 import stringSimilarity from 'string-similarity';
 import FileMatcher from './FileMatcher';
+import TVDBClient from './TVDBClient';
+import Series from '../models/Series';
 
 export default class SeriesMatcher extends FileMatcher {
 
+  constructor() {
+    super();
+    this.client = new TVDBClient(process.env.TVDB_KEY);
+    this.matchedFiles = {
+      // Successfully matched files
+      matched: {},
+      // Files that got no API result
+      notMatched: [],
+      // Files that received an ambigious API result
+      ambigious: {},
+    };
+    this.showsWithEpisodes = [];
+  }
+
+  /**
+   * Match an array of series against the TVDB API
+   * @param {Array} series to be matched
+   * @param {Functon} callback function when all files have been matched
+   */
   matchFiles(series, callback) {
     let iterations = 0;
-    const matchedFiles = {};
     series.forEach((file) => {
       this.match(file)
       .then((result) => {
-        matchedFiles[result.show] = result;
+        if (result instanceof Series) {
+          this.matchedFiles.matched[result.show] = result;
+        } else {
+          this.matchedFiles.ambigious[result.original.name] = result;
+        }
         if (++iterations === series.length) {
-          callback(matchedFiles);
+          callback(this.matchedFiles);
         }
       })
       .catch(() => {
-        matchedFiles[file.show] = file;
+        this.matchedFiles.notMatched.push(file);
         if (++iterations === series.length) {
-          callback(matchedFiles);
+          callback(this.matchedFiles);
         }
       });
     });
   }
 
+  /**
+   * Match a single Series instance
+   * @param {Series} series to be matched
+   */
   match(series) {
     return new Promise((resolve, reject) => {
       this.client.search(series)
@@ -53,23 +81,30 @@ export default class SeriesMatcher extends FileMatcher {
     });
   }
 
-  requestEpisodes(id) {
-    return new Promise((resolve, reject) => {
+  /**
+   * Request episodes for specified array of shows
+   * @param {Array} shows
+   * @param {Function} callback executed after all shows have been processed
+   */
+  requestEpisodes(shows, callback) {
+    let iterations = 0;
+    shows.forEach((show) => {
       const episodes = {};
-      this.client.get(id)
+      this.client.get(show.id)
       .then((data) => {
         data.Episodes.forEach((episode) => {
           episodes[`S${episode.airedSeason}E${episode.airedEpisodeNumber}`] = episode.episodeName;
         });
-        resolve({
+        this.showsWithEpisodes.push({
           id: data.id,
-          show: data.seriesName,
+          show: show.show,
+          seriesName: data.seriesName,
           aliases: data.aliases,
           episodes,
         });
-      })
-      .catch((error) => {
-        reject(error);
+        if (++iterations === shows.length) {
+          callback(this.showsWithEpisodes);
+        }
       });
     });
   }

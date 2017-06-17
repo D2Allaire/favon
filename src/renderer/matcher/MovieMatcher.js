@@ -1,25 +1,38 @@
 import stringSimilarity from 'string-similarity';
 import FileMatcher from './FileMatcher';
+import TMDBClient from './TMDBClient';
 import { syncLoop } from './utilities';
 import Movie from '../models/Movie';
 
 export default class MovieMatcher extends FileMatcher {
 
+  constructor() {
+    super();
+    this.client = new TMDBClient(process.env.TMDB_KEY);
+    this.matchedFiles = {
+      // Successfully matched files
+      matched: [],
+      // Files that received an ambigious API result
+      ambigious: [],
+    };
+  }
+
+  /**
+   * Match an array of movies with the TMDB API
+   * @param {Movie} movies
+   * @param {Function} callback when all movies have been matched
+   */
   matchFiles(movies, callback) {
+    // Need to synchronously loop to avoid double API calls for e.g. movie and subtitles
     syncLoop(movies.length, (loop) => {
       const file = movies[loop.iteration()];
       this.match(file)
       .then((result) => {
-        this.matchedFiles.push(result);
-        // To make sure only one API call gets made for both .mkv and .srt for example
-        if (result instanceof Movie) {
-          this.matchedFilesIdentificators[result.name] = result;
-        } else {
-          this.matchedFilesIdentificators[result.original.name] = result;
-        }
+        this.resolveResult(result);
         loop.next();
       })
-      // No result came back from API.
+      // No result came back from API. Try a fallback where we make a request by each
+      // part of the filename separated by `-`. Example: `japhson-fargo-1080p`.
       .catch(() => {
         const parts = file.getNamePartsByDelimiter('-');
         const matchedParts = [];
@@ -37,16 +50,10 @@ export default class MovieMatcher extends FileMatcher {
             partsLoop.next();
           });
         }, () => {
+          // Sort matched parts by similarity to originally parsed title.
           matchedParts.sort(FileMatcher.partComparator);
-          console.log(matchedParts);
-          this.matchedFiles.push(matchedParts[0]);
           const result = matchedParts[0];
-          // To make sure only one API call gets made for both .mkv and .srt for example
-          if (result instanceof Movie) {
-            this.matchedFilesIdentificators[result.name] = result;
-          } else {
-            this.matchedFilesIdentificators[result.original.name] = result;
-          }
+          this.resolveResult(result);
           loop.next();
         });
       });
@@ -55,6 +62,26 @@ export default class MovieMatcher extends FileMatcher {
     });
   }
 
+  /**
+   * Correctly add the result to our matchedFiles array. Additionally, store the name so we
+   * don't make unnecessary double API calls.
+   * @param {Movie} result
+   */
+  resolveResult(result) {
+    if (result instanceof Movie) {
+      this.matchedFiles.matched.push(result);
+      this.matchedFilesIdentificators[result.name] = result;
+    } else {
+      this.matchedFiles.ambigious.push(result);
+      this.matchedFilesIdentificators[result.original.name] = result;
+    }
+  }
+
+  /**
+   * Check if a movie has already been matched before.
+   * @param {Movie} movie
+   * @return {*} returns either the already matched movie or FALSE
+   */
   checkIfAlreadyMatched(movie) {
     if (this.matchedFilesIdentificators[movie.name] !== undefined) {
       return this.matchedFilesIdentificators[movie.name];
@@ -62,6 +89,14 @@ export default class MovieMatcher extends FileMatcher {
     return false;
   }
 
+  /**
+   * Match a movie. Make API call, sort results by similarity to originally parsed title
+   * and either select the correct one or return an object with the original and an array
+   * of results in case there is ambiguity
+   * @param {Movie} movie to be matched
+   * @return {*} returns either the movie with matched information or an object with the
+   * original and an array of results in case there is ambiguity
+   */
   match(movie) {
     return new Promise((resolve, reject) => {
       const alreadyMatched = this.checkIfAlreadyMatched(movie);
@@ -108,6 +143,11 @@ export default class MovieMatcher extends FileMatcher {
     });
   }
 
+  /**
+   * Sort results by similarity to originally parsed title
+   * @param {Movie} movie
+   * @param {Array} results
+   */
   static compareSimilarity(movie, results) {
     const scores = [];
     results.forEach((result) => {

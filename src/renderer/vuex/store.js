@@ -43,6 +43,10 @@ export default new Vuex.Store({
     SET_LOADING: (state, val) => {
       state.loading = val;
     },
+    UPDATE_AMBIGIOUS: (state, files) => {
+      state.ambiguousFiles = files;
+      if (files.length > 0) state.hasAmbiguousFiles = true;
+    },
     ADD_AMBIGUOUS: (state, file) => {
       state.ambiguousFiles.push(file);
       state.hasAmbiguousFiles = true;
@@ -53,6 +57,9 @@ export default new Vuex.Store({
     EMPTY_AMBIGUOUS: (state) => {
       state.ambiguousFiles.length = 0;
       state.hasAmbiguousFiles = false;
+    },
+    SET_PARSED_SHOWS: (state, shows) => {
+      state.parsedShows = shows;
     },
     ADD_PARSED_SHOW: (state, series) => {
       Vue.set(state.parsedShows, series.show, series);

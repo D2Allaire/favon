@@ -1,34 +1,52 @@
+import Movie from '../models/Movie';
 
 export default class MovieParser {
 
-  constructor(movie) {
-    this.movie = movie;
+  constructor() {
+    this.parsedFiles = [];
   }
 
+  /**
+   * Default parsing pattern for movies. Check for title and year (19xx / 20xx).
+   */
   static get DEFAULT() {
     return /^((?:[^([])+)(?:(?:\b|\s)*\(?((?:19\d{2})|(?:20\d{2}))\)?)(?:.*)$/i;
   }
 
-  cleanFileName() {
-    return this.movie.removeDelimiters().removeKeywords();
+  /**
+   * Parse an array of files and return array of parsed movies.
+   * @param {Array} files
+   * @return {Array} parsedFiles
+   */
+  parseFiles(files) {
+    files.forEach((file) => {
+      const movie = new Movie(...file.getProperties());
+      this.parsedFiles.push(MovieParser.parse(movie));
+    });
+    return this.parsedFiles;
   }
 
-  parse() {
-    this.cleanFileName();
+  /**
+   * Parse a single movie instance
+   * @param {Movie} movie
+   * @return {Movie} movie
+   */
+  static parse(movie) {
+    movie.cleanFileName();
     // Explicit Pattern
-    const result = MovieParser.DEFAULT.exec(this.movie.renamed);
+    const result = MovieParser.DEFAULT.exec(movie.renamed);
     if (result) {
-      this.movie.title = result[1];
-      this.movie.year = result[2];
-      this.movie.normalizeTitle();
-      return this.movie;
+      movie.title = result[1];
+      movie.year = result[2];
+      movie.normalizeTitle();
+      return movie;
     }
     // Hope for the best! Remove all CAPSLOCKED words.
-    this.movie.title = this.movie.renamed.replace(
+    movie.title = movie.renamed.replace(
       /(?:\b|[\s.-])+([A-Z]{2,}[^\s.-]*)(?:\b|[\s.-])+/g, '',
     ).trim();
-    this.movie.normalizeTitle();
-    return this.movie;
+    movie.normalizeTitle();
+    return movie;
   }
 
 }

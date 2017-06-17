@@ -15,4 +15,8 @@ export default class Anime extends Series {
     });
     return this;
   }
+
+  cleanFileName() {
+    this.removeBrackets().removeDelimiters().removeKeywords();
+  }
 }

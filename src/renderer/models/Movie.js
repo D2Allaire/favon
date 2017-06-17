@@ -19,6 +19,10 @@ export default class Movie extends MediaFile {
     return this;
   }
 
+  cleanFileName() {
+    this.removeDelimiters().removeKeywords();
+  }
+
   getNamePartsByDelimiter(delimiter) {
     return this.title.split(delimiter);
   }

@@ -1,4 +1,14 @@
+import Series from '../models/Series';
+
 export default class SeriesParser {
+
+  constructor() {
+    this.parsedFiles = {
+      parsed: {},
+      uniqueShows: {},
+      episodeCount: 0,
+    };
+  }
 
   /**
    * Base pattern to match show name. Matches any string at the start of the filename
@@ -42,12 +52,37 @@ export default class SeriesParser {
     return series.normalizeShow();
   }
 
-  static cleanFileName(series) {
-    return series.removeDelimiters().removeKeywords();
+  /**
+   * Parse and array of files
+   * @param {Array} files to be parsed
+   * @return {Object} parsedFiles with information on unique shows and episode count
+   */
+  parseFiles(files) {
+    files.forEach((file) => {
+      const parsedEpisode = SeriesParser.parse(new Series(...file.getProperties()));
+      // Only add each show once
+      if (parsedEpisode.show.length > 0 &&
+      this.parsedFiles.uniqueShows[parsedEpisode.show] === undefined) {
+        this.parsedFiles.uniqueShows[parsedEpisode.show] =
+        new Series(...parsedEpisode.getProperties());
+      }
+      // Make sure an array exists for this show
+      if (!this.parsedFiles.parsed[parsedEpisode.show]) {
+        this.parsedFiles.parsed[parsedEpisode.show] = [];
+      }
+      this.parsedFiles.parsed[parsedEpisode.show].push(parsedEpisode);
+      this.parsedFiles.episodeCount++;
+    });
+    return this.parsedFiles;
   }
 
+  /**
+   * Parse a single Series instance
+   * @param {Series} series to be parsed
+   * @return {Series} parsed series
+   */
   static parse(series) {
-    SeriesParser.cleanFileName(series);
+    series.cleanFileName();
     // Explicit Pattern
     let result = new RegExp(
       SeriesParser.BASE.source + SeriesParser.EXPLICIT.source, 'i',
@@ -57,7 +92,7 @@ export default class SeriesParser {
       series.season = Number(result[2]);
       series.episode = Number(result[3]);
       SeriesParser.normalizeSeries(series);
-      return;
+      return series;
     }
     // Match explicit directory season marker
     result = new RegExp(
@@ -68,7 +103,7 @@ export default class SeriesParser {
       series.season = Number(result[2]);
       series.episode = Number(result[3]);
       SeriesParser.normalizeSeries(series);
-      return;
+      return series;
     }
     // Default Parsing Pattern
     result = new RegExp(
@@ -80,6 +115,7 @@ export default class SeriesParser {
       series.episode = Number(result[3]);
       SeriesParser.normalizeSeries(series);
     }
+    return series;
   }
 
 }

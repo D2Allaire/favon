@@ -78,16 +78,11 @@
   import RenamedFiles from './RenameView/RenamedFiles.vue';
   import AmbiguityModal from './RenameView/AmbiguityModal.vue';
   import FileReader from '../reader/FileReader';
-  import AnimeParser from '../parser/AnimeParser';
-  import Anime from '../models/Anime';
-  import SeriesParser from '../parser/SeriesParser';
-  import Series from '../models/Series';
-  import Movie from '../models/Movie';
-  import MovieParser from '../parser/MovieParser';
   import FileRenamer from '../renamer/FileRenamer';
-  import TMDBClient from '../matcher/TMDBClient';
+  import AnimeParser from '../parser/AnimeParser';
+  import SeriesParser from '../parser/SeriesParser';
+  import MovieParser from '../parser/MovieParser';
   import MovieMatcher from '../matcher/MovieMatcher';
-  import TVDBClient from '../matcher/TVDBClient';
   import SeriesMatcher from '../matcher/SeriesMatcher';
 
   export default {
@@ -107,7 +102,6 @@
         alertClasses: 'is-success',
         alertStatus: 'All files have been renamed.',
         notificationClasses: '',
-        error: '',
         newFiles: {},
         uniqueSeriesAmount: 0,
         seriesCleared: 0,
@@ -146,10 +140,18 @@
       });
       EventBus.$on('series-ambiguity-cleared', this.requestEpisodes);
     },
+
     methods: {
+      /**
+       * Open folder select dialog
+       */
       openFileDialog() {
         this.ipc.send('open-file-dialog');
       },
+
+      /**
+       * Read files from a given directory and update view
+       */
       readFiles() {
         this.closeNotification();
         this.$store.commit('SET_LOADING', true);
@@ -162,115 +164,127 @@
             this.$store.commit('SET_LOADING', false);
             this.$store.commit('SET_SELECTED', '');
           })
-          .catch((err) => {
+          .catch(() => {
             this.$store.commit('SET_LOADING', false);
-            this.error = err.message || err;
           });
       },
+
+      /**
+       * Delete an item from file list
+       */
       removeItem() {
         this.$store.commit('REMOVE_FILE', this.selected);
       },
+
+      /**
+       * Parse files as anime
+       */
       parseAnime() {
         this.setLoading('anime', true);
-        const newFiles = [];
-        this.files.forEach((file) => {
-          const anime = new Anime(...file.getProperties());
-          newFiles.push(new AnimeParser(anime).parse());
-        });
-        this.$store.commit('UPDATE_FILES', newFiles);
-        this.setLoading('anime', false);
+        const parser = new AnimeParser();
+
+        const parsedFiles = parser.parseFiles(this.files);
+        console.log(parsedFiles);
+        // const newFiles = [];
+        // this.files.forEach((file) => {
+        //   const anime = new Anime(...file.getProperties());
+        //   newFiles.push(new AnimeParser(anime).parse());
+        // });
+        // this.$store.commit('UPDATE_FILES', newFiles);
+        // this.setLoading('anime', false);
       },
+
+      /**
+       * Parse files as movies
+       */
       parseMovie() {
         this.setLoading('movie', true);
-        const newFiles = [];
-        const matcher = new MovieMatcher(new TMDBClient(process.env.TMDB_KEY));
-        this.files.forEach((file) => {
-          const movie = new Movie(...file.getProperties());
-          const parsedMovie = new MovieParser(movie).parse();
-          newFiles.push(parsedMovie);
-        });
-        matcher.matchFiles(newFiles, (matchedFiles) => {
-          const matchedMovies = [];
-          for (let i = 0; i < matchedFiles.length; i++) {
-            if (!(matchedFiles[i] instanceof Movie)) {
-              this.$store.commit('ADD_AMBIGUOUS', matchedFiles[i]);
-            } else {
-              matchedMovies.push(matchedFiles[i]);
-            }
-          }
-          this.$store.commit('UPDATE_FILES', matchedMovies);
+        const parser = new MovieParser();
+        const matcher = new MovieMatcher();
+
+        const parsedFiles = parser.parseFiles(this.files);
+        matcher.matchFiles(parsedFiles, (matchedFiles) => {
+          // Add ambigious files
+          this.$store.commit('UPDATE_AMBIGIOUS', matchedFiles.ambigious);
+          this.$store.commit('UPDATE_FILES', matchedFiles.matched);
           this.setLoading('movie', false);
         });
       },
+
+      /**
+       * Parse files as series
+       */
       parseTV() {
+        this.episodesCleared = 0;
         this.setLoading('tv', true);
-        const matcher = new SeriesMatcher(new TVDBClient(process.env.TVDB_KEY));
-        this.files.forEach((file) => {
-          const episode = new Series(...file.getProperties());
-          SeriesParser.parse(episode);
-          console.log(episode);
-          // Only add each show once
-          if (episode.show.length > 0
-            && this.parsedShows[episode.show] === undefined) {
-            this.$store.commit('ADD_PARSED_SHOW', new Series(...episode.getProperties()));
-          }
-          if (!this.newFiles[episode.show]) this.newFiles[episode.show] = [];
-          this.newFiles[episode.show].push(episode);
-          this.episodesCount++;
-        });
-        // After matching show, clear ambigous entries and request episodes from API.
+        const parser = new SeriesParser();
+        const matcher = new SeriesMatcher();
+
+        const parsedFiles = parser.parseFiles(this.files);
+        this.newFiles = parsedFiles.parsed;
+        this.episodesCount = parsedFiles.episodeCount;
+        this.$store.commit('SET_PARSED_SHOWS', parsedFiles.uniqueShows);
+
+
+        // After matching shows, clear ambigous entries and request episodes from API.
         matcher.matchFiles(Object.values(this.parsedShows), (matchedFiles) => {
-          this.uniqueSeriesAmount = Object.keys(matchedFiles).length;
-          const shows = Object.values(matchedFiles);
-          for (let i = 0; i < shows.length; i++) {
-            // If it's not a series it's an array and thus ambigious
-            if (!(shows[i] instanceof Series)) {
-              console.log('Ambigious.');
-              this.$store.commit('ADD_AMBIGUOUS', shows[i]);
-            } else if (shows[i].id === undefined) {
-              // If ID is undefined we got no response from API (no results)
-              if (++this.seriesCleared === this.uniqueSeriesAmount) this.setLoading('tv', false);
-              if (++this.episodesCleared === this.episodesCount) {
-                const finishedSeries = Object.values(this.newFiles);
-                for (let i = 0; i < finishedSeries.length; i++) {
-                  this.updatedFiles = this.updatedFiles.concat(finishedSeries[i]);
-                }
-                this.$store.commit('UPDATE_FILES', this.updatedFiles);
-              }
-            } else {
-              console.log(`Processing ${shows[i].show}`);
-              this.requestEpisodes(shows[i]);
-            }
-          }
+          this.$store.commit('UPDATE_AMBIGIOUS', matchedFiles.ambigious);
+          this.episodesCleared += matchedFiles.notMatched.length;
+          matcher.requestEpisodes(Object.values(matchedFiles.matched), (showsWithEpisodes) => {
+            showsWithEpisodes.forEach((show) => {
+              this.processSeriesFiles(show);
+            });
+            this.checkIfAllSeriesProcessed();
+          });
         });
       },
 
+      /**
+       * Request episodes for a single show. Used by ambiguity check
+       * @param {Object} series to be requested
+       */
       requestEpisodes(series) {
-        const matcher = new SeriesMatcher(new TVDBClient(process.env.TVDB_KEY));
-        matcher.requestEpisodes(series.id)
-          .then((show) => {
-            this.newFiles[series.show].forEach((file) => {
-              if (show.episodes[`S${file.season}E${file.episode}`]) {
-                file.title = FileRenamer.cleanString(show.episodes[`S${file.season}E${file.episode}`]);
-                file.show = FileRenamer.cleanString(show.show);
-              }
-              this.episodesCleared++;
-            });
-            if (++this.seriesCleared === this.uniqueSeriesAmount) this.setLoading('tv', false);
-            if (this.episodesCleared === this.episodesCount) {
-              const finishedSeries = Object.values(this.newFiles);
-              for (let i = 0; i < finishedSeries.length; i++) {
-                this.updatedFiles = this.updatedFiles.concat(finishedSeries[i]);
-              }
-              this.$store.commit('UPDATE_FILES', this.updatedFiles);
-            }
-          })
-          .catch((error) => {
-            if (++this.seriesCleared === this.uniqueSeriesAmount) this.setLoading('tv', false);
-            console.error(error);
-          });
+        const matcher = new SeriesMatcher();
+        matcher.requestEpisodes([series], (showsWithEpisodes) => {
+          this.processSeriesFiles(showsWithEpisodes[0]);
+          this.checkIfAllSeriesProcessed();
+        });
       },
 
+      /**
+       * Assign title and show to series episodes for particular show
+       * @param {Object} show to be processed
+       */
+      processSeriesFiles(show) {
+        this.newFiles[show.show].forEach((file) => {
+          if (show.episodes[`S${file.season}E${file.episode}`]) {
+            file.title = FileRenamer.cleanString(show.episodes[`S${file.season}E${file.episode}`]);
+            file.show = FileRenamer.cleanString(show.seriesName);
+          }
+          this.episodesCleared++;
+        });
+      },
+
+      /**
+       * Check if all series have been processed
+       * If so, update store and reset loading button
+       */
+      checkIfAllSeriesProcessed() {
+        if (this.episodesCleared === this.episodesCount) {
+          const finishedSeries = Object.values(this.newFiles);
+          for (let i = 0; i < finishedSeries.length; i++) {
+            this.updatedFiles = this.updatedFiles.concat(finishedSeries[i]);
+          }
+          this.$store.commit('UPDATE_FILES', this.updatedFiles);
+          this.setLoading('tv', false);
+        }
+      },
+
+      /**
+       * Manipulate the loading status of matching buttons
+       * @param {String} type (`movie`, `tv`, `anime`)
+       * @param {Boolean} status to indicate whether it's loading or not
+       */
       setLoading(type, status) {
         if (status) {
           this.isMatching = true;
@@ -280,6 +294,10 @@
           this[`${type}ButtonClasses`] = '';
         }
       },
+
+      /**
+       * Rename all files. Once done, display success notification
+       */
       renameFiles() {
         this.saveButtonClasses = 'is-loading is-empty';
         this.files.forEach((file) => {
@@ -291,12 +309,11 @@
         this.alertStatus = 'All files have been renamed.';
       },
 
+      /**
+       * Close the success notification
+       */
       closeNotification() {
         this.notificationClasses = '';
-      },
-
-      showAlreadyParsed(name) {
-        return (this.parsedShows.indexOf(name) > -1);
       },
     },
   };

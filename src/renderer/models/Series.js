@@ -37,6 +37,10 @@ export default class Series extends MediaFile {
     return this.episode;
   }
 
+  cleanFileName() {
+    this.removeDelimiters().removeKeywords();
+  }
+
   getProperties() {
     return [
       this.path,

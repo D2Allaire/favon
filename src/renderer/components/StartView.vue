@@ -24,6 +24,7 @@
   export default {
     name: 'start-page',
     mounted() {
+      // When the user selected a directory, update path and read all files.
       this.ipc.on('selected-directory', (event, path) => {
         this.$store.commit('SET_PATH', path[0]);
         this.readFiles();
@@ -46,6 +47,9 @@
       },
     },
     methods: {
+      /**
+       * Send a request to the main process to open file dialog
+       */
       openFileDialog() {
         this.ipc.send('open-file-dialog');
       },
