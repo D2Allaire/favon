@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 export default class TMDBClient {
-  constructor(key) {
-    this.key = key;
+  constructor() {
+    this.key = 'a18acf0f4863e03582f540974a2eb294';
   }
 
   getTMDBConnection() {

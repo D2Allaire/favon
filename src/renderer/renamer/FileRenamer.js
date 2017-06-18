@@ -53,7 +53,7 @@ export default class FileRenamer {
     const config = new Config();
     let pattern = config.get('movie');
     // If pattern is bullshit use default one
-    if (pattern && pattern.indexOf('%N') === -1) return `${file.title} (${file.year})`;
+    if (!pattern || pattern.indexOf('%N') === -1) return `${file.title} (${file.year})`;
     pattern = pattern.replace('%N', file.title);
     pattern = pattern.replace('%Y', file.year);
     return pattern;

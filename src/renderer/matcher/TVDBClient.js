@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 export default class TVDBClient {
-  constructor(key) {
-    this.key = key;
+  constructor() {
+    this.key = 'D3039F313085C2BA';
     this.url = 'http://localhost:3000';
   }
 

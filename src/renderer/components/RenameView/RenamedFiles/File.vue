@@ -27,6 +27,8 @@ export default {
     },
     name() {
       let newName = this.file.renamed;
+      console.log(config);
+      console.log(config.get('movie'));
       if (this.file instanceof Anime) {
         if (!this.file.show || !this.file.episode) return newName;
         newName = FileRenamer.getAnimeFileName(this.file);
@@ -35,7 +37,7 @@ export default {
         newName = FileRenamer.getSeriesFileName(this.file);
       } else if (this.file instanceof Movie) {
         if (!this.file.title || !this.file.year) return newName;
-        newName = FileRenamer.getMovieFileName(this.file, config);
+        newName = FileRenamer.getMovieFileName(this.file);
       }
       return newName;
     },

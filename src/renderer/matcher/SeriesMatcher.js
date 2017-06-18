@@ -7,7 +7,7 @@ export default class SeriesMatcher extends FileMatcher {
 
   constructor() {
     super();
-    this.client = new TVDBClient(process.env.TVDB_KEY);
+    this.client = new TVDBClient();
     this.matchedFiles = {
       // Successfully matched files
       matched: {},

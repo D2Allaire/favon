@@ -8,7 +8,7 @@ export default class MovieMatcher extends FileMatcher {
 
   constructor() {
     super();
-    this.client = new TMDBClient(process.env.TMDB_KEY);
+    this.client = new TMDBClient();
     this.matchedFiles = {
       // Successfully matched files
       matched: [],
