@@ -8,6 +8,10 @@ export default class FileReader {
     this.files = [];
   }
 
+  static get EXCLUDE() {
+    return /(Sample|Trailer|Extras|Trailers|Interviews|Scenes|Shorts)/i;
+  }
+
   static get MEDIAFORMATS() {
     return /^(.+)\.(mkv|mp4|m4v|mp[gev2]|mpeg|avi|mov|wmv|vob|flv|srt|sub|ass|ssa|idx)$/i;
   }
@@ -27,6 +31,8 @@ export default class FileReader {
   readFile(path) {
     const result = FileReader.MEDIAFORMATS.exec(path);
     if (result) {
+      const exclude = FileReader.EXCLUDE.exec(path);
+      if (exclude) return;
       // Get actual filename with stripped off directories.
       const name = result[1].replace(/^.*[\\/]/, '');
       const format = result[2].toLowerCase();
