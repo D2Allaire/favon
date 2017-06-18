@@ -1,6 +1,6 @@
 <template>
   <div class="files files--system">
-    <h2>System Files</h2>
+    <h2>Original Files</h2>
     <ul v-on:scroll="syncScroll" id="systemScroll">
       <li v-for="(file, index) in files"><a @click="toggleSelected(index)" :class="{ selected : selected === index }">{{ file.name }} <span class="format">{{ file.format }}</span></a></li>
     </ul>
